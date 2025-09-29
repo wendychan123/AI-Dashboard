@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5050", // 本地開發時代理到 5050
+        target: "http://localhost:3000", // ⚠️ 本地開發用 (Vercel 部署時自動走 serverless)
         changeOrigin: true,
       },
     },
