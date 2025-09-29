@@ -25,7 +25,7 @@ export function AccRateCard({ accRate }: { accRate: number }) {
     <Card className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
       <CardHeader>
         <CardTitle className="text-sm font-semibold text-foreground mb-2">
-          整體正確率
+          整體正確率  
         </CardTitle>
         <div className="text-4xl font-bold text-primary mb-2">？</div>
       </CardHeader>
@@ -43,7 +43,7 @@ export function PerfectMissionsCard({ perfectMissions }: { perfectMissions: stri
         </CardTitle>
         {/* 顯示答對率100%的 mission_id */}
                 
-                <p className="mt-2 text-sm text-muted-foreground">尚無答對率 100% 的測驗卷</p>
+                <p className="mt-2 text-sm text-muted-foreground">尚無答對率 100% 的測驗</p>
               
       </CardHeader>
     </Card>

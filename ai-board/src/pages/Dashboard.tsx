@@ -1,15 +1,15 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useStudent } from "@/contexts/StudentContext";
-import { ArrowLeft, PenTool, BarChart3, TrendingUp, Target, Brain, Lightbulb, Zap, Clock, Award } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useStudent } from "@/contexts/StudentContext";
+import { BookOpen, Play, Calculator } from "lucide-react";
 import Papa from "papaparse";
+import { PenTool, Info, Menu, Award, Target, Clock, TrendingUp, BarChart3, HelpCircle } from "lucide-react";
 import { Line, Bar, Pie } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Info } from "lucide-react"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -37,16 +37,16 @@ ChartJS.register(
   Legend
 );
 
-// CSV URL
+// 五個資料表的 URL
 const CSV_PRACTICE =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjuUAxurul4du6S5xU8G8EPICQXTahTlI3wdu3Ts79IKIpYN8dumxLnXdrwr_p0Mg-3q3zUI6K1AvD/pub?gid=710180589&single=true&output=csv";
-const CSV_PRACTICE_ITEMS =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vRD57cnc7a_AdBnniC5JArEg9_yADLWytVUJFg-UvtUtXrWgqZzkCDfwcqCL-kF6-v2x6RpaNbzHlnT/pub?gid=513380032&single=true&output=csv";
-const CSV_PRACTICE_SESSION =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQmFiHAAyAJOy2E4EEt4ai0un6LdF8gjkEIpbq4V3rY-n4VxxIWomYqrKRzfWqL2MCO-b3v1BmSYNYc/pub?gid=1105603400&single=true&output=csv";
+const CSV_TEST = "";
+const CSV_VIDEO = "";
+const CSV_VOCAB = "";
+const CSV_MATH = "";
 
+// 對應資料表資料結構
 
-// 資料結構
 export interface PracticeRowCSV {
   user_sn: string;
   organization_id: string;
@@ -85,59 +85,36 @@ interface PracticeRow {
   subject_name: string;
 }
 
-export interface PracticeSessionCSV {
+interface TestRow {
   user_sn: string;
-  prac_sn: string;
-  date: string;
-  subject_name: string;
-  indicator_name: string;
-  n_items: string;
-  n_correct: string;
-  acc: string;         // 平均正確率 (0~1)
-  avg_rt_sec: string;  // 平均作答時間 (秒)
+  subject: string;
+  score: string;
 }
-
-interface PracticeSession {
-  user_sn: number;
-  prac_sn: number;
-  date: Date | null;
-  subject_name: string;
-  indicator_name: string;
-  n_items: number;
-  n_correct: number;
-  acc: number;
-  avg_rt_sec: number;
-}
-
-export interface PracticeItemCSV {
+interface VideoRow {
   user_sn: string;
-  prac_sn: string;
-  date: string;
-  subject_name: string;
-  indicator_name: string;
-  item_pos: string;
-  is_correct: string;
-  rt_sec: string;
+  video_name: string;
+  finish_rate: string;
+}
+interface VocabRow {
+  user_sn: string;
+  word: string;
+  is_correct: string; 
+}
+interface MathRow {
+  user_sn: string;
+  unit_name: string;
+  is_correct: string; 
 }
 
-interface PracticeItem {
-  user_sn: number;
-  prac_sn: number;
-  date: Date | null;
-  subject_name: string;
-  indicator_name: string;
-  item_pos: number;
-  is_correct: number;
-  rt_sec: number;
-}
-
-
-export default function StudentPractice() {
+export default function Dashboard() {
   const { studentInfo } = useStudent();
   const [practiceRows, setPracticeRows] = useState<PracticeRow[]>([]);
-  const [sessions, setSessions] = useState<PracticeSession[]>([]);
+  const [testRows, setTestRows] = useState<TestRow[]>([]);
+  const [videoRows, setVideoRows] = useState<VideoRow[]>([]);
+  const [vocabRows, setVocabRows] = useState<VocabRow[]>([]);
+  const [mathRows, setMathRows] = useState<MathRow[]>([]);
 
-  // 共用函式
+  // ---------- 共用函式 ----------
   const toNum = (v: any): number | null => {
     const n = Number(String(v ?? "").trim());
     return Number.isFinite(n) ? n : null;
@@ -167,22 +144,13 @@ export default function StudentPractice() {
     subject_name: (r.subject_name || "").trim(),
   });
 
-  const normalizeSession = (r: PracticeSessionCSV): PracticeSession => ({
-  user_sn: Number(r.user_sn),
-  prac_sn: Number(r.prac_sn),
-  date: r.date ? new Date(r.date.replace(" ", "T")) : null,
-  subject_name: (r.subject_name || "").trim(),
-  indicator_name: (r.indicator_name || "").trim(),
-  n_items: Number(r.n_items),
-  n_correct: Number(r.n_correct),
-  acc: Number(r.acc),
-  avg_rt_sec: Number(r.avg_rt_sec),
-});
-
-
-  // 載入 CSV
-  useEffect(() => {
-    Papa.parse<PracticeRowCSV>(CSV_PRACTICE, {
+  // ---------- CSV 載入 ----------
+  const loadPracticeCSV = (url: string, setData: (data: PracticeRow[]) => void) => {
+    if (!url) {
+      setData([]);
+      return;
+    }
+    Papa.parse<PracticeRowCSV>(url, {
       download: true,
       header: true,
       skipEmptyLines: true,
@@ -196,11 +164,18 @@ export default function StudentPractice() {
           });
           return o as PracticeRowCSV;
         });
-        setPracticeRows(clean.map(normalizePractice));
+        setData(clean.map(normalizePractice));
       },
+      error: () => setData([]),
     });
+  };
 
-    Papa.parse<PracticeSessionCSV>(CSV_PRACTICE_SESSION, {
+  const loadCSV = <T,>(url: string, setData: (data: T[]) => void) => {
+    if (!url) {
+      setData([]);
+      return;
+    }
+    Papa.parse<T>(url, {
       download: true,
       header: true,
       skipEmptyLines: true,
@@ -212,35 +187,57 @@ export default function StudentPractice() {
             const v = r[k];
             o[nk] = typeof v === "string" ? v.trim() : v;
           });
-          return o as PracticeSessionCSV;
+          return o as T;
         });
-        setSessions(clean.map(normalizeSession));
+        setData(clean);
       },
+      error: () => setData([]),
     });
+  };
+
+  // 載入五個資料集
+  useEffect(() => {
+    loadPracticeCSV(CSV_PRACTICE, setPracticeRows);
+    loadCSV<TestRow>(CSV_TEST, setTestRows);
+    loadCSV<VideoRow>(CSV_VIDEO, setVideoRows);
+    loadCSV<VocabRow>(CSV_VOCAB, setVocabRows);
+    loadCSV<MathRow>(CSV_MATH, setMathRows);
   }, []);
 
-  // 過濾登入學生資料
-  const sid = Number(studentInfo?.name ?? 0);
-  const currentPractice = useMemo(
-    () => practiceRows.filter((r) => r.user_sn === sid),
-    [practiceRows, sid]
-  );
-  const currentSessions = useMemo(
-    () => sessions.filter((r) => r.user_sn === sid),
-    [sessions, sid]
-  );
 
-  // Chart.js 資料
-  const scoreTrend = {
-    labels: currentSessions.map((r) => r.date?.toLocaleDateString() || ""),
+  // ---------- 過濾登入學生 ----------
+const sid = Number(studentInfo?.name ?? 0);  // 用 name 當 user_sn
+const currentPractice = useMemo(
+  () => practiceRows.filter((r) => r.user_sn === sid),
+  [practiceRows, sid]
+);
+
+
+  // ---------- Chart.js data（從實際 CSV 映射） ----------
+  // 影片練習區
+  const subjectScores = {
+    labels: ["國文", "數學", "英文"],
     datasets: [
       {
-        label: "正確率 (%)",
-        data: currentSessions.map((r) => Math.round((r.acc || 0) * 100)),
+        label: "分數",
+        data: [
+          currentPractice[0]?.chinese_score || 0,
+          currentPractice[0]?.math_score || 0,
+          currentPractice[0]?.english_score || 0,
+        ],
+        backgroundColor: ["#f87171", "#60a5fa", "#34d399"],
+      },
+    ],
+  };
+
+  const scoreTrend = {
+    labels: currentPractice.map((r) => r.date?.toLocaleDateString() || ""),
+    datasets: [
+      {
+        label: "正確率",
+        data: currentPractice.map((r) => r.score_rate || 0),
         borderColor: "#3b82f6",
         backgroundColor: "rgba(59,130,246,0.3)",
-        fill: true,
-        tension: 0.3,
       },
     ],
   };
@@ -293,429 +290,424 @@ export default function StudentPractice() {
   };
 
 
+// 儀表板圖表顯示
   return (
-    <div className="bg-gradient-background min-h-full">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="bg-background border-b border-border/20 mb-4 -mx-4 -mt-8 px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <PenTool className="w-8 h-8 text-primary" />
+    <div className="min-h-screen bg-background">
+      <div className="px-6 py-6">
+      {/* 0. 學生資訊＋各科成績表現 */}
+        <div className="bg-card rounded-lg p-6 mb-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="mb-6 flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-1">學生資訊</h2>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+          </div>
+          
+          {/* 學生基本資料 */}
+          <div className="bg-background rounded-lg p-6 mb-6 border border-border">
+            <div className="flex items-start gap-6">
+              <div className="w-20 h-20 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                <img 
+                  src="/src/assets/student-avatar.jpg" 
+                  alt="Student Avatar"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/src/assets/student-avatar.png';
+                  }}
+                />
+              </div>
+
+              <div className="flex-1">
+                <h1 className="text-2xl font-semibold text-foreground mb-4">
+                  {studentInfo?.name || "學生姓名"}
+                </h1>
+
+                <div className="flex flex-wrap gap-16 text-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">學號：</span>
+                    <span className="font-medium">{studentInfo?.id || "ID"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">年級：</span>
+                    <span className="font-medium">{studentInfo?.grade || "年級"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">班級：</span>
+                    <span className="font-medium">{studentInfo?.class || "班級"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">座號：</span>
+                    <span className="font-medium">{studentInfo?.seat || "座號"}</span>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-2xl font-semibold text-foreground">
-                    練習表現分析
-                  </h1>
-                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 各科成績表現 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {/* 國文 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+              <div className="text-sm text-blue-600 font-medium">國文成績</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {studentInfo?.chineseScore ?? "--"} 分
+              </div>
+            </div>
+
+            {/* 數學 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+              <div className="text-sm text-blue-600 font-medium">數學成績</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {studentInfo?.mathScore ?? "--"} 分
+              </div>
+            </div>
+
+            {/* 英文 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+              <div className="text-sm text-blue-600 font-medium">英文成績</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {studentInfo?.englishScore ?? "--"} 分
+              </div>
+            </div>
+
+            {/* 待加強科目 */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center justify-between">
+              <div className="text-sm text-red-600 font-medium">待加強科目</div>
+              <div className="flex flex-wrap gap-2">
+                {(() => {
+                  const weakSubjects: string[] = [];
+
+                  if ((studentInfo?.chineseScore ?? 100) < 60) weakSubjects.push("國文");
+                  if ((studentInfo?.mathScore ?? 100) < 60) weakSubjects.push("數學");
+                  if ((studentInfo?.englishScore ?? 100) < 60) weakSubjects.push("英文");
+
+                  return weakSubjects.length > 0 ? (
+                    weakSubjects.map((subj) => (
+                      <span
+                        key={subj}
+                        className="px-3 py-1 rounded-md bg-red-600 text-white text-sm font-semibold"
+                      >
+                        {subj}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground text-sm">無</span>
+                  );
+                })()}
               </div>
             </div>
           </div>
         </div>
 
-        {/* 統計卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">總練習次數</CardTitle>
-                <div className="text-4xl font-bold text-foreground mb-0">{currentPractice.length} 次</div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-1">
-                <Badge variant="secondary" className="bg-success/10 text-success">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  本週活躍
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+        {/* 1. 練習表現區 */}
+        <div className="bg-card rounded-lg p-6 mb-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="mb-6 flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-1">練習表現區</h2>
+              <p className="text-sm text-muted-foreground">本週練習成績趨勢</p>
+            </div>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20">
+                    <Info className="w-10 h-10 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>查看練習表現的詳細統計，包含成績趨勢、題型分析和完成進度</p>
+                </TooltipContent>
+              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20"
+                asChild
+              >
+                <Link to="/student-dashboard/practice">
+                  <Menu className="w-10 h-10 text-muted-foreground" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 1.1 總練習次數 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">總練習次數</h3>
+              <div className="text-4xl font-bold text-primary mb-2">{currentPractice.length || 0}</div>
+              <p className="text-sm text-muted-foreground">本週累積</p>
+            </div>
 
-          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">平均正確率</CardTitle>
-                <div className="text-4xl font-bold text-foreground mb-0">
+            {/* 1.2 平均正確率 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">平均正確率</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
                 {currentPractice.length > 0 
-                  ? Math.round((currentPractice.reduce((sum, p) => sum + (p.score_rate || 0), 0) / currentPractice.length))
+                  ? Math.round((currentPractice.reduce((sum, p) => sum + (p.score_rate || 0), 0) / currentPractice.length)) 
                   : 0}%
               </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-1">
-                <Badge variant="secondary" className="bg-success/10 text-success">
-                  <Target className="w-3 h-3 mr-1" />
-                  表現良好
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+              <p className="text-sm text-muted-foreground">整體表現</p>
+            </div>
 
-          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">平均作答時間</CardTitle>
-                <div className="text-4xl font-bold text-foreground mb-0">
+            {/* 1.3 學習時間 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">作答時間</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
                 {currentPractice.length > 0 
                   ? Math.round((currentPractice.reduce((sum, p) => sum + (p.during_time || 0), 0) / currentPractice.length))
                   : 0} 秒
               </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center gap-1">
-                <Badge variant="secondary" className="bg-warning/10 text-warning">
-                  <Clock className="w-3 h-3 mr-1" />
-                  效率良好
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          
-        </div>
-
-        {/* 主要圖表區域 - 2+2+1 佈局 */}
-        <div className="space-y-8 mb-12">
-          {/* 第一行：兩個次要圖表 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* 指標平均正確率 */}
-            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated hover:shadow-glow transition-smooth relative">
-              <CardHeader className="pb-6">
-                <div className="flex items-center justify-between">
-                  {/* 左側：標題 */}
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <CardTitle className="text-xl font-bold text-foreground">指標平均正確率</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">各項能力指標表現</p>
-                    </div>
-                  </div>
-
-                  {/* 右側：icon 區 */}
-                  <div className="flex items-center gap-3">
-                    {/* 問號 */}
-                    <div className="relative group">
-                      <button className="p-2 rounded-full bg-muted/20 hover:bg-muted/30">
-                        <span className="sr-only">說明</span>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6 text-muted-foreground"
-                            viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd"
-                                d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-9-1a1 1 0 112 0v1a1 1 0 11-2 0V9zm1 5a1 1 0 100-2 1 1 0 000 2z"
-                                clipRule="evenodd" />
-                        </svg>
-                      </button>
-                      {/* 資訊框 */}
-                      <div className="absolute right-0 mt-2 w-72 p-3 text-xs rounded-md bg-black/90 text-white leading-relaxed opacity-0 group-hover:opacity-100 transition">
-                        <p>
-                          說明待補充
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* AI 建議按鈕 
-                    <button
-                      onClick={() => setSelectedChart("各科分數比較")}
-                      className="p-2 rounded-full bg-primary/90 hover:bg-primary text-primary-foreground shadow-lg"
-                    >
-                      <Brain className="w-5 h-5" />
-                    </button> */}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px]">
-                  <Bar
-                    data={indicatorData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                          backgroundColor: 'rgba(0,0,0,0.8)',
-                          titleColor: '#fff',
-                          bodyColor: '#fff',
-                          borderColor: '#333',
-                          borderWidth: 1,
-                        }
-                      },
-                      scales: {
-                        x: { 
-                          grid: { color: 'rgba(0,0,0,0.1)' },
-                          ticks: { color: '#666' }
-                        },
-                        y: { 
-                          grid: { color: 'rgba(0,0,0,0.1)' },
-                          ticks: { color: '#666' }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 科目分布 */}            
-            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated hover:shadow-glow transition-smooth relative">
-              <CardHeader className="pb-6">
-                <div className="flex items-center justify-between">
-                  {/* 左側：標題 */}
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <CardTitle className="text-xl font-bold text-foreground">科目分布</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">練習科目比例分析</p>
-                    </div>
-                  </div>
-
-                  {/* 右側：icon 區 */}
-                  <div className="flex items-center gap-3">
-                    {/* 問號 */}
-                    <div className="relative group">
-                      <button className="p-2 rounded-full bg-muted/20 hover:bg-muted/30">
-                        <span className="sr-only">說明</span>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6 text-muted-foreground"
-                            viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd"
-                                d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-9-1a1 1 0 112 0v1a1 1 0 11-2 0V9zm1 5a1 1 0 100-2 1 1 0 000 2z"
-                                clipRule="evenodd" />
-                        </svg>
-                      </button>
-                      {/* 資訊框 */}
-                      <div className="absolute right-0 mt-2 w-72 p-3 text-xs rounded-md bg-black/90 text-white leading-relaxed opacity-0 group-hover:opacity-100 transition">
-                        <p>
-                          說明待補充
-                        </p>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              </CardHeader>  
-              <CardContent>
-                <div className="h-[250px]">
-                  <Pie
-                    data={subjectDist}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: { 
-                        legend: { 
-                          position: 'bottom',
-                          labels: { 
-                            color: '#666',
-                            padding: 20,
-                            font: { size: 12 }
-                          }
-                        },
-                        tooltip: {
-                          backgroundColor: 'rgba(0,0,0,0.8)',
-                          titleColor: '#fff',
-                          bodyColor: '#fff',
-                          borderColor: '#333',
-                          borderWidth: 1,
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* 第三行：作答時間分布 */}
-          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated hover:shadow-glow transition-smooth relative">
-              <CardHeader className="pb-6">
-                <div className="flex items-center justify-between">
-                  {/* 左側：標題 */}
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <CardTitle className="text-xl font-bold text-foreground">作答時間分布</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">每次練習的時間花費分析</p>
-                    </div>
-                  </div>
-
-                  {/* 右側：icon 區 */}
-                  <div className="flex items-center gap-3">
-                    {/* 問號 */}
-                    <div className="relative group">
-                      <button className="p-2 rounded-full bg-muted/20 hover:bg-muted/30">
-                        <span className="sr-only">說明</span>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            className="h-6 w-6 text-muted-foreground"
-                            viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd"
-                                d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zm-9-1a1 1 0 112 0v1a1 1 0 11-2 0V9zm1 5a1 1 0 100-2 1 1 0 000 2z"
-                                clipRule="evenodd" />
-                        </svg>
-                      </button>
-                      {/* 資訊框 */}
-                      <div className="absolute right-0 mt-2 w-72 p-3 text-xs rounded-md bg-black/90 text-white leading-relaxed opacity-0 group-hover:opacity-100 transition">
-                        <p>
-                          說明待補充
-                        </p>
-                      </div>
-                    </div>
-
-                    
-                  </div>
-                </div>
-              </CardHeader>  
-            <CardContent>
-              <div className="h-[300px]">
-                <Bar
-                  data={timeDist}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { 
-                      legend: { display: false },
-                      tooltip: {
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        titleColor: '#fff',
-                        bodyColor: '#fff',
-                        borderColor: '#333',
-                        borderWidth: 1,
-                      }
-                    },
-                    scales: {
-                      x: { 
-                        grid: { color: 'rgba(0,0,0,0.1)' },
-                        ticks: { color: '#666' }
-                      },
-                      y: { 
-                        grid: { color: 'rgba(0,0,0,0.1)' },
-                        ticks: { color: '#666' }
-                      }
-                    }
-                  }}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 正確率趨勢 */}
-        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated">
-          <CardHeader>
-            <CardTitle>正確率趨勢</CardTitle>
-            <p className="text-sm text-muted-foreground">每次練習的正確率變化</p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <Line
-                data={scoreTrend}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                      callbacks: { label: (ctx) => `${ctx.raw}%` },
-                    },
-                  },
-                  scales: {
-                    y: { min: 0, max: 100, ticks: { callback: (v) => `${v}%` } },
-                  },
-                }}
-              />
+              <p className="text-sm text-muted-foreground">平均每次</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div> 
 
-        {/* 開始AI分析按鈕 */}
-            <div className="p-16 pb-16 flex justify-center">
-              <Button 
-                className="min-w-[160px] bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
-                onClick={() => {
-                  // TODO: 實作AI分析功能
-                  console.log('開始AI分析');
-                }}
+        {/* 2. 測驗答題區 */}
+        <div className="bg-card rounded-lg p-6 mb-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="mb-6 flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-1">測驗答題區</h2>
+              <p className="text-sm text-muted-foreground">各科目測驗成績</p>
+            </div>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20">
+                    <Info className="w-10 h-10 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>查看各科目測驗成績、月度趨勢和答題準確率詳細分析</p>
+                </TooltipContent>
+              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20"
+                asChild
               >
-                <Brain className="w-4 h-4 mr-2" />
-                開始AI分析
+                <Link to="/Student_practice">
+                  <Menu className="w-10 h-10 text-muted-foreground" />
+                </Link>
               </Button>
             </div>
-
-        {/* AI個人化建議面板 - 移至底部 */}
-        <div className="mt-0">
-          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated">
-            <CardHeader className="pb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Brain className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-xl font-bold text-foreground">AI 個人化學習建議</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">針對學習狀況的智能分析與建議</p>
-                </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 2.1 各科成績 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">各科成績</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
               </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* 數據分析 */}
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <BarChart3 className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-foreground text-sm">數據分析</h4>
-                      <p className="text-xs text-muted-foreground">即時分析</p>
-                    </div>
-                  </div>
-                  <div className="text-center py-6">
-                    <p className="text-muted-foreground text-lg font-medium mb-2">AI 分析中...</p>
-                    <p className="text-sm text-muted-foreground">正在深度分析您的學習數據，請稍候</p>
-                  </div>
-                </div>
+              <p className="text-sm text-muted-foreground"></p>
 
-                {/* 學習提醒 */}
-                <div className="bg-warning/5 border border-warning/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 bg-warning/10 rounded-lg flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-warning" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-foreground text-sm">學習提醒</h4>
-                      <p className="text-xs text-muted-foreground">今日建議</p>
-                    </div>
-                  </div>
-                  <div className="text-center py-6">
-                    <p className="text-muted-foreground text-lg font-medium mb-2">AI 分析中...</p>
-                    <p className="text-sm text-muted-foreground">正在深度分析您的學習數據，請稍候</p>
-                  </div>
-                </div>
+            </div>
 
-                {/* 行動建議 */}
-                <div className="bg-success/5 border border-success/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 bg-success/10 rounded-lg flex items-center justify-center">
-                      <Target className="w-4 h-4 text-success" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-foreground text-sm">行動建議</h4>
-                      <p className="text-xs text-muted-foreground">個人化推薦</p>
-                    </div>
-                  </div>
-                  <div className="text-center py-6">
-                    <p className="text-muted-foreground text-lg font-medium mb-2">AI 分析中...</p>
-                    <p className="text-sm text-muted-foreground">正在深度分析您的學習數據，請稍候</p>
-                  </div>
-                </div>
+            {/* 2.2 成績趨勢 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">月度趨勢</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
 
+            {/* 2.3 答題準確率 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">答題準確率</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+              </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+          </div>
+        </div> 
+
+        {/* 3. 影片瀏覽區 */}
+        <div className="bg-card rounded-lg p-6 mb-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="mb-6 flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-1">影片瀏覽區</h2>
+              <p className="text-sm text-muted-foreground">影片觀看進度</p>
+            </div>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20">
+                    <Info className="w-10 h-10 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>查看影片觀看進度、每日觀看時間和影片分類統計</p>
+                </TooltipContent>
+              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20"
+                asChild
+              >
+                <Link to="/Student_practice">
+                  <Menu className="w-10 h-10 text-muted-foreground" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 3.1 觀看進度 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">觀看進度</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+                </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+
+            {/* 3.2 每日觀看時間 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">每日觀看時間</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+              </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+
+            {/* 3.3 影片分類統計 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">影片分類統計</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+              </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+          </div>
+        </div> 
+
+        {/* 4. 英文單字區 */}
+        <div className="bg-card rounded-lg p-6 mb-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="mb-6 flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-1">英文單字區</h2>
+              <p className="text-sm text-muted-foreground">單字學習進度</p>
+            </div>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20">
+                    <Info className="w-10 h-10 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>查看單字學習進度、學習趨勢和錯誤類型分析</p>
+                </TooltipContent>
+              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20"
+                asChild
+              >
+                <Link to="/Student_practice">
+                  <Menu className="w-10 h-10 text-muted-foreground" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 4.1 單字學習進度 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">單字學習進度</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+                </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+
+            {/* 4.2 學習趨勢 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">學習趨勢</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+              </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+
+            {/* 4.3 錯誤題型分析 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">錯誤題型</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+              </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+          </div>
+        </div> 
+
+        {/* 5. 數學測驗區 */}
+        <div className="bg-card rounded-lg p-6 mb-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="mb-6 flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-1">數學測驗區</h2>
+              <p className="text-sm text-muted-foreground">數學能力評估</p>
+            </div>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20">
+                    <Info className="w-10 h-10 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>查看數學測驗難度分析、主題表現和正確率統計</p>
+                </TooltipContent>
+              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-12 h-12 p-0 hover:bg-primary/10 relative z-20"
+                asChild
+              >
+                <Link to="/Student_practice">
+                  <Menu className="w-10 h-10 text-muted-foreground" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 5.1 難度分析 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">難度分析</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+                </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+
+            {/* 5.2 主題表現 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">主題表現</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+              </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+
+            {/* 5.3 正確率統計 */}
+            <div className="bg-background rounded-lg p-6 text-center border border-border hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 transition-all duration-300 cursor-pointer">
+              <h3 className="text-sm font-semibold text-foreground mb-2">正確率統計</h3>
+              <div className="text-4xl font-bold text-primary mb-2">
+                ?
+              </div>
+              <p className="text-sm text-muted-foreground"></p>
+            </div>
+          </div>
+           
+        </div> 
       </div>
     </div>
-  );
+);
 }
-
-

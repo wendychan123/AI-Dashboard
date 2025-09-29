@@ -27,7 +27,7 @@ app.post("/api/gemini", async (req, res) => {
 
     console.log("➡️ 準備送出請求到 Gemini...");
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-20:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,7 +67,7 @@ app.post("/api/gemini", async (req, res) => {
 
 
 // ✅ 最簡單測試端點
-app.get("/ping", (req, res) => {
+app.get("/api/test", (req, res) => {
   console.log("✅ 收到 /ping 請求");
   res.json({ message: "pong" });
 });
