@@ -138,11 +138,18 @@ export default function LearningAtmosphereDemo() {
         }),
       });
 
-      const data = await response.json();
+      {/*const data = await response.json();
 
       if (!response.ok || data.error) {
         const errMsg = data.error || "未知錯誤";
         setAiSummary(`❌ AI 分析失敗：${errMsg}`);
+        return;
+      } */}
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data) {
+        setAiSummary(`❌ AI 分析失敗：${data?.error || "後端沒有回傳 JSON"}`);
         return;
       }
 

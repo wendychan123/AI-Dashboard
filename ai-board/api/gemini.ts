@@ -1,39 +1,50 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type { IncomingMessage, ServerResponse } from "http";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method === "GET") {
-    return res.status(200).json({ message: "pong" });
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ message: "pong" }));
+    return;
   }
 
   if (req.method === "POST") {
-    try {
-      const { messages } = req.body;
+    let body = "";
+    req.on("data", chunk => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      try {
+        const data = JSON.parse(body);
 
-      const prompt = messages
-        .map((m: any) => `${m.role}: ${m.content}`)
-        .join("\n");
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [{ text: data.messages.map((m: any) => m.content).join("\n") }]
+                }
+              ]
+            })
+          }
+        );
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-          }),
-        }
-      );
+        const result = await response.json();
 
-      const data = await response.json();
-
-      const reply =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ Gemini 沒有回覆";
-
-      return res.status(200).json({ reply });
-    } catch (err: any) {
-      return res.status(500).json({ error: err.message });
-    }
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ reply: result }));
+      } catch (err: any) {
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: err.message || "Internal Server Error" }));
+      }
+    });
+  } else {
+    res.statusCode = 405;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ error: "Method Not Allowed" }));
   }
-
-  return res.status(405).json({ error: "Method not allowed" });
 }
