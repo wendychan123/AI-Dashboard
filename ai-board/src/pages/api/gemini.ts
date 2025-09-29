@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "http";
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method === "POST") {
     let body = "";
-    req.on("data", chunk => {
+    req.on("data", (chunk) => {
       body += chunk;
     });
 
@@ -13,13 +13,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         const prompt = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
 
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               contents: [{ parts: [{ text: prompt }] }]
-            })
+            }),
           }
         );
 
@@ -27,7 +27,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（Gemini 沒有回覆）";
 
         res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ reply }));
+        res.write(JSON.stringify({ reply }));
+        res.end();
       } catch (err: any) {
         res.statusCode = 500;
         res.end(JSON.stringify({ error: err.message }));
