@@ -10,9 +10,9 @@ export default defineConfig({
     },
   },
   server: {
-    proxy: process.env.VERCEL ? {} : {
+    proxy: {
       "/api": {
-        target: "http://localhost:5050",
+        target: "http://localhost:5050", // 本地開發時代理到 5050
         changeOrigin: true,
       },
     },
