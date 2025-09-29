@@ -1,41 +1,28 @@
+// api/gemini.ts
 import type { IncomingMessage, ServerResponse } from "http";
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  if (req.method === "GET") {
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ message: "pong" }));
+    return;
+  }
+
   if (req.method === "POST") {
     let body = "";
-    req.on("data", (chunk) => {
+    req.on("data", chunk => {
       body += chunk;
     });
-
     req.on("end", async () => {
       try {
-        const { messages } = JSON.parse(body);
-        const prompt = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
-
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }]
-            }),
-          }
-        );
-
-        const data = await response.json();
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "（Gemini 沒有回覆）";
-
+        const data = JSON.parse(body);
+        // 🔹 這裡改成呼叫 Gemini API
         res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify({ reply }));
-        res.end();
+        res.end(JSON.stringify({ reply: "Gemini 回覆測試成功", input: data }));
       } catch (err: any) {
         res.statusCode = 500;
         res.end(JSON.stringify({ error: err.message }));
       }
     });
-  } else {
-    res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ message: "pong" }));
   }
 }
