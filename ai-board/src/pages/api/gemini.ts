@@ -1,4 +1,3 @@
-// api/gemini.ts
 import type { IncomingMessage, ServerResponse } from "http";
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
@@ -16,9 +15,19 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     req.on("end", async () => {
       try {
         const data = JSON.parse(body);
-        // 🔹 這裡改成呼叫 Gemini API
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          }
+        );
+
+        const result = await response.json();
         res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ reply: "Gemini 回覆測試成功", input: data }));
+        res.end(JSON.stringify(result));
       } catch (err: any) {
         res.statusCode = 500;
         res.end(JSON.stringify({ error: err.message }));
