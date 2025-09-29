@@ -15,6 +15,10 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- ❌ 原本的錯誤路徑 -->
+    <!-- <script type="module" src="/src/main.tsx"></script> -->
+
+    <!-- ✅ 改成這樣，Vite build 會自動轉到 dist/assets/*.js -->
+    <script type="module" src="/main.tsx"></script>
   </body>
 </html>
