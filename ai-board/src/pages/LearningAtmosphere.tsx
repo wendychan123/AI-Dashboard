@@ -139,13 +139,15 @@ export default function LearningAtmosphereDemo() {
       }),
     });
 
-    const rawText = await response.text(); // 🔹 先讀字串
-    let data;
+    const rawText = await response.text(); 
+    console.log("伺服器回傳狀態:", response.status);
+    console.log("伺服器回傳內容:", rawText);
 
+    let data;
     try {
-      data = JSON.parse(rawText); // 嘗試 parse JSON
+      data = JSON.parse(rawText);
     } catch {
-      setAiSummary(`❌ AI 分析失敗：後端回傳不是 JSON (${rawText.slice(0, 100)}...)`);
+      setAiSummary(`❌ AI 分析失敗：後端回傳不是 JSON (${rawText.slice(0, 200)}...)`);
       return;
     }
 
