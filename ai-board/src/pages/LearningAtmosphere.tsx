@@ -115,53 +115,29 @@ export default function LearningAtmosphereDemo() {
   const handleAiAnalysis = async () => {
   setLoading(true);
   try {
-    const response = await fetch("/api/gemini", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: "system",
-            content:
-              "你是一個學習助理，請根據數據幫學生提供學習分析與建議。請務必用 **Markdown 條列式 (3~5點)** 回答，簡潔扼要，每點不超過20字。",
-          },
-          {
-            role: "user",
-            content: `以下是某位學生與班級平均數據：
-              練習表現：${studentData.practice} (班平均 ${classData.practice_avg})
-              測驗答題：${studentData.quiz} (班平均 ${classData.quiz_avg})
-              影片瀏覽：${studentData.video} (班平均 ${classData.video_avg})
-              英文單字：${studentData.vocab} (班平均 ${classData.vocab_avg})
-              數學測驗：${studentData.math} (班平均 ${classData.math_avg})
-              請以「數據解析、學習提醒、行動建議」三個段落，輸出 Markdown 條列式分析。`,
-          },
-        ],
-      }),
-    });
+    // 🔹 直接用假的 AI 建議取代 API 呼叫
+    const fakeReply = `
+### 數據解析
+- 練習表現高於班級平均  
+- 單字量明顯優勢  
+- 測驗答題略低於班級  
 
-    const rawText = await response.text(); 
-    console.log("伺服器回傳狀態:", response.status);
-    console.log("伺服器回傳內容:", rawText);
+### 學習提醒
+- 加強數學題目訓練  
+- 減少影片分心，提高效率  
 
-    let data;
-    try {
-      data = JSON.parse(rawText);
-    } catch {
-      setAiSummary(`❌ AI 分析失敗：後端回傳不是 JSON (${rawText.slice(0, 200)}...)`);
-      return;
-    }
+### 行動建議
+- 每日多做 5 題數學  
+- 單字保持每天複習 20 個  
+- 減少非必要影片觀看  
+    `;
 
-    if (!response.ok || data.error) {
-      const errMsg = data.error || "未知錯誤";
-      setAiSummary(`❌ AI 分析失敗：${errMsg}`);
-      return;
-    }
+  // 模擬 API 延遲
+    await new Promise((r) => setTimeout(r, 800));
 
-    const text = data.reply || "⚠️ 沒有收到 Gemini 回覆。";
-    setAiSummary(text);
-
+    setAiSummary(fakeReply);
   } catch (error: any) {
-    console.error("前端呼叫 Proxy API 出錯:", error);
+    console.error("前端呼叫出錯:", error);
     setAiSummary(`❌ 發生錯誤：${error.message}`);
   } finally {
     setLoading(false);

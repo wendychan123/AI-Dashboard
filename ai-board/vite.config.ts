@@ -4,13 +4,16 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import { fileURLToPath } from "url";
 
+
 // 模擬 __dirname (因為 ESM 模式裡沒有 __dirname)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
 export default defineConfig({
   base: "./",
   plugins: [react()],
+  assetsInclude: ["**/*.html"], // 🔹 告訴 Vite HTML 當成靜態資源
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"), // 支援 @ 代表 src 路徑
