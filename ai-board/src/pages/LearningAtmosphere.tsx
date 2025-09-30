@@ -146,7 +146,16 @@ export default function LearningAtmosphereDemo() {
         return;
       } */}
 
-      const data = await response.json().catch(() => null);
+      const raw = await response.text(); // 先讀文字
+      console.log("🔹 後端回應:", raw);
+
+      let data: any = {};
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        setAiSummary(`❌ AI 分析失敗：後端回傳不是 JSON (${raw})`);
+        return;
+      }
 
       if (!response.ok || !data) {
         setAiSummary(`❌ AI 分析失敗：${data?.error || "後端沒有回傳 JSON"}`);
