@@ -13,7 +13,6 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   base: "./",
   plugins: [react()],
-  assetsInclude: ["**/*.html"], // 🔹 告訴 Vite HTML 當成靜態資源
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"), // 支援 @ 代表 src 路徑
