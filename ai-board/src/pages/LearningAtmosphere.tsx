@@ -113,65 +113,59 @@ export default function LearningAtmosphereDemo() {
 
   // 🔹 呼叫 Gemini Proxy API
   const handleAiAnalysis = async () => {
-    setLoading(true);
+  setLoading(true);
+  try {
+    const response = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content:
+              "你是一個學習助理，請根據數據幫學生提供學習分析與建議。請務必用 **Markdown 條列式 (3~5點)** 回答，簡潔扼要，每點不超過20字。",
+          },
+          {
+            role: "user",
+            content: `以下是某位學生與班級平均數據：
+              練習表現：${studentData.practice} (班平均 ${classData.practice_avg})
+              測驗答題：${studentData.quiz} (班平均 ${classData.quiz_avg})
+              影片瀏覽：${studentData.video} (班平均 ${classData.video_avg})
+              英文單字：${studentData.vocab} (班平均 ${classData.vocab_avg})
+              數學測驗：${studentData.math} (班平均 ${classData.math_avg})
+              請以「數據解析、學習提醒、行動建議」三個段落，輸出 Markdown 條列式分析。`,
+          },
+        ],
+      }),
+    });
+
+    const rawText = await response.text(); // 🔹 先讀字串
+    let data;
+
     try {
-      const response = await fetch("/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: "你是一個學習助理，請根據數據幫學生提供學習分析與建議。請務必用 **Markdown 條列式 (3~5點)** 回答，簡潔扼要，每點不超過20字。",
-            },
-            {
-              role: "user",
-              content: `以下是某位學生與班級平均數據：
-                練習表現：${studentData.practice} (班平均 ${classData.practice_avg})
-                測驗答題：${studentData.quiz} (班平均 ${classData.quiz_avg})
-                影片瀏覽：${studentData.video} (班平均 ${classData.video_avg})
-                英文單字：${studentData.vocab} (班平均 ${classData.vocab_avg})
-                數學測驗：${studentData.math} (班平均 ${classData.math_avg})
-                請以「數據解析、學習提醒、行動建議」三個段落，輸出 Markdown 條列式分析。`,
-            },
-          ],
-        }),
-      });
-
-      {/*const data = await response.json();
-
-      if (!response.ok || data.error) {
-        const errMsg = data.error || "未知錯誤";
-        setAiSummary(`❌ AI 分析失敗：${errMsg}`);
-        return;
-      } */}
-
-      const raw = await response.text(); // 先讀文字
-      console.log("🔹 後端回應:", raw);
-
-      let data: any = {};
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        setAiSummary(`❌ AI 分析失敗：後端回傳不是 JSON (${raw})`);
-        return;
-      }
-
-      if (!response.ok || !data) {
-        setAiSummary(`❌ AI 分析失敗：${data?.error || "後端沒有回傳 JSON"}`);
-        return;
-      }
-
-      const text = data.reply || "⚠️ 沒有收到 Gemini 回覆。";
-      setAiSummary(text);
-
-    } catch (error: any) {
-      console.error("前端呼叫 Proxy API 出錯:", error);
-      setAiSummary(`❌ 發生錯誤：${error.message}`);
-    } finally {
-      setLoading(false);
+      data = JSON.parse(rawText); // 嘗試 parse JSON
+    } catch {
+      setAiSummary(`❌ AI 分析失敗：後端回傳不是 JSON (${rawText.slice(0, 100)}...)`);
+      return;
     }
-  };
+
+    if (!response.ok || data.error) {
+      const errMsg = data.error || "未知錯誤";
+      setAiSummary(`❌ AI 分析失敗：${errMsg}`);
+      return;
+    }
+
+    const text = data.reply || "⚠️ 沒有收到 Gemini 回覆。";
+    setAiSummary(text);
+
+  } catch (error: any) {
+    console.error("前端呼叫 Proxy API 出錯:", error);
+    setAiSummary(`❌ 發生錯誤：${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="bg-gradient-background min-h-full">
