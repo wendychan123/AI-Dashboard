@@ -427,343 +427,356 @@ useEffect(() => {
 
   // 儀表板圖表顯示
   return (
-    <div className="w-full max-w-[1350px] mx-auto space-y-3">
-      {/* Top Section - Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"> </div>
-      <div className="max-w-12xl mx-auto px-4 sm:px-6 lg:px-4 py-4">
-              {/* 雷達圖 + 活躍度趨勢 */}
-              <Dialog open={open} onOpenChange={setOpen}>
-                <div className="grid md:grid-cols-2 gap-6 mb-8">
-                  {/* 雷達圖卡片 */}
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <CardTitle>學習氛圍雷達圖</CardTitle>
-                      <button
-                        onClick={() => handleAiAnalysis("radar")}
-                        disabled={loadingRadar}
-                        className="p-2 rounded-full bg-primary text-white shadow hover:bg-primary/90 transition"
-                      >
-                        {loadingRadar ? "分析中..." : <Bot className="w-4 h-4" />}
-                      </button>
-                    </CardHeader>
-                    <CardContent className="h-[400px]">
-                      <canvas ref={radarRef}></canvas>
-                    </CardContent>
-                  </Card>
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* 🔹 第一列：雷達圖與活躍度圖（手機垂直、平板橫向） */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
+          {/* 雷達圖 */}
+          <Card className="shadow-sm hover:shadow-md transition">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg sm:text-xl font-semibold">
+                學習氛圍雷達圖
+              </CardTitle>
+              <button
+                onClick={() => handleAiAnalysis("radar")}
+                disabled={loadingRadar}
+                className="p-2 rounded-full bg-primary text-white shadow hover:bg-primary/90 transition"
+              >
+                {loadingRadar ? "分析中..." : <Bot className="w-4 h-4" />}
+              </button>
+            </CardHeader>
+            <CardContent className="h-[280px] sm:h-[350px] md:h-[420px]">
+              <canvas ref={radarRef}></canvas>
+            </CardContent>
+          </Card>
 
-                  {/* 活躍度趨勢卡片 */}
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                      <CardTitle>每週學習活躍度趨勢</CardTitle>
-                      <button
-                        onClick={() => handleAiAnalysis("activity")}
-                        disabled={loadingActivity}
-                        className="p-2 rounded-full bg-primary text-white shadow hover:bg-primary/90 transition"
-                      >
-                        {loadingActivity ? "分析中..." : <Bot className="w-4 h-4" />}
-                      </button>
-                    </CardHeader>
-                    <CardContent className="h-[400px]">
-                      <canvas ref={activityRef}></canvas>
-                    </CardContent>
-                  </Card>
+          {/* 活躍度 */}
+          <Card className="shadow-sm hover:shadow-md transition">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg sm:text-xl font-semibold">
+                每週學習活躍度趨勢
+              </CardTitle>
+              <button
+                onClick={() => handleAiAnalysis("activity")}
+                disabled={loadingActivity}
+                className="p-2 rounded-full bg-primary text-white shadow hover:bg-primary/90 transition"
+              >
+                {loadingActivity ? "分析中..." : <Bot className="w-4 h-4" />}
+              </button>
+            </CardHeader>
+            <CardContent className="h-[280px] sm:h-[350px] md:h-[420px]">
+              <canvas ref={activityRef}></canvas>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI 建議彈窗 */}
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {activeChart === "radar"
+                ? "AI 建議：學習氛圍雷達圖"
+                : "AI 建議：活躍度趨勢"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto mt-2 prose prose-sm dark:prose-invert">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {aiSummary}
+            </ReactMarkdown>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
+
+      {/* 🔹 第二列：學習指標儀表 */}
+      <Card className="p-2 sm:p-1">
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl font-semibold">
+            學習指標表現等級
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+          {Object.entries(maxValues).map(([key, max]) => {
+            const value = (studentData as any)[key];
+            const percent = Math.min(value / max, 1);
+            const hint =
+              percent >= 0.8
+                ? "表現傑出，繼續保持！"
+                : percent >= 0.4
+                ? "表現合格，穩定進步中！"
+                : "仍有進步空間，加油！";
+            const hintColor =
+              percent >= 0.8
+                ? "text-green-600"
+                : percent >= 0.4
+                ? "text-yellow-600"
+                : "text-red-600";
+            return (
+              <div key={key} className="text-center">
+                <p className={`mb-2 text-xs sm:text-sm font-medium ${hintColor}`}>
+                  {hint}
+                </p>
+                <div className="h-[100px] sm:h-[120px] relative">
+                  <GaugeChart
+                    id={`gauge-${key}`}
+                    nrOfLevels={20}
+                    percent={percent}
+                    colors={["#FF5F6D", "#FFC371", "#4CAF50"]}
+                    arcWidth={0.3}
+                    hideText
+                  />
                 </div>
+                <p className="mt-3 text-sm font-medium">
+                  {{
+                    practice: "練習表現",
+                    quiz: "測驗答題",
+                    video: "影片瀏覽",
+                    vocab: "英文單字",
+                    math: "數學測驗",
+                  }[key]}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {value} / {max}
+                </p>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
 
-                {/* AI 分析彈窗 */}
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {activeChart === "radar"
-                        ? "AI 建議：學習氛圍雷達圖"
-                        : "AI 建議：活躍度趨勢"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="max-h-[60vh] overflow-y-auto mt-2 prose prose-sm dark:prose-invert">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => (
-                          <p className="mb-2 text-gray-700 leading-relaxed">{children}</p>
-                        ),
-                        li: ({ children }) => <li className="list-disc ml-5">{children}</li>,
-                      }}
-                    >
-                      {aiSummary}
-                    </ReactMarkdown>
-                  </div>
-                </DialogContent>
-              </Dialog>
+      {/* 🔹 各項數據詳情與差異分析 */}
+      <div className="mt-10">
+        <div className="grid grid-cols-1 sm:grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* 練習表現 */}
+          <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">練習表現</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  您：{studentData.practice} 次 ｜ 班級平均：{classData.practice_avg} 次
+                </p>
+              </div>
+              <Link to="/student-dashboard/practice">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition"
+                >
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                </Button>
+              </Link>
+            </div>
 
+            {/* 長條比較圖 */}
+            <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-4">
+              <div
+                className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
+                style={{ width: `${(classData.practice_avg / maxValues.practice) * 100}%` }}
+              ></div>
+              <div
+                className="absolute top-0 left-0 h-3 rounded-full bg-blue-500"
+                style={{ width: `${(studentData.practice / maxValues.practice) * 100}%` }}
+              ></div>
+            </div>
 
-              {/* 指標 Gauges */}
-              <Card className="mb-10">
-                <CardHeader>
-                  <CardTitle>學習指標表現等級</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                  {Object.entries(maxValues).map(([key, max]) => {
-                    const value = (studentData as any)[key];
-                    const percent = Math.min(value / max, 1);
-                    let hint = "等待數據分析";
-                    let hintColor = "text-gray-500";
-                    if (percent >= 0.8) {
-                      hint = "表現傑出，繼續保持！";
-                      hintColor = "text-green-600";
-                    } else if (percent >= 0.4) {
-                      hint = "表現合格，穩定進步中！";
-                      hintColor = "text-yellow-600";
-                    } else {
-                      hint = "仍有進步空間，加油！";
-                      hintColor = "text-red-600";
-                    }
-      
-                    return (
-                      <div key={key} className="text-center">
-                        <p className={`mb-2 text-sm font-medium ${hintColor}`}>{hint}</p>
-                        <div className="h-[120px] relative">
-                          <GaugeChart
-                            id={`gauge-${key}`}
-                            nrOfLevels={20}
-                            percent={percent}
-                            colors={["#FF5F6D", "#FFC371", "#4CAF50"]}
-                            arcWidth={0.3}
-                            textColor="#333"
-                            hideText
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500 px-4 mt-1">
-                          <span>低</span>
-                          <span>普</span>
-                          <span>優</span>
-                        </div>
-                        <p className="mt-3 text-sm font-medium">
-                          {{
-                            practice: "練習表現",
-                            quiz: "測驗答題",
-                            video: "影片瀏覽",
-                            vocab: "英文單字",
-                            math: "數學測驗",
-                          }[key]}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {value} / {max}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-  
-
-      
-      
-             {/* 各項數據詳情與差異分析 */}
-              <div className="grid md:grid-cols-2 gap-6 mb-8">
-
-                {/* 練習表現卡片 */}
-                <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900">練習表現</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        您：{studentData.practice} 次 ｜ 班級平均：{classData.practice_avg} 次
-                      </p>
-                    </div>
-                    <Link to="/student-dashboard/practice">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="p-3 rounded-lg bg-primary/10 hover:bg-primary/20 transition flex items-center justify-center"
-                      >
-                        <BarChart3 className="w-5 h-5 text-primary" />
-                      </Button>
-                    </Link>
-                  </div>
-
-                  <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-6">
-                    <div
-                      className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
-                      style={{ width: `${(classData.practice_avg / maxValues.practice) * 100}%` }}
-                    ></div>
-                    <div
-                      className="absolute top-0 left-0 h-3 rounded-full bg-blue-500"
-                      style={{ width: `${(studentData.practice / maxValues.practice) * 100}%` }}
-                    ></div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="bg-slate-50 rounded-lg p-3 border text-center">
-                      <PenTool className="w-4 h-4 mx-auto text-slate-600 mb-1" />
-                      <p className="text-xs font-semibold text-slate-700">次數</p>
-                      <p className="text-base font-bold text-slate-800">
-                        {currentPractice.length || 0}
-                      </p>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-center">
-                      <Target className="w-4 h-4 mx-auto text-slate-600 mb-1" />
-                      <p className="text-xs font-semibold text-slate-700">正確率</p>
-                      <p className="text-base font-bold text-slate-800">
-                        {currentPractice.length > 0
-                          ? Math.round(
-                              currentPractice.reduce(
-                                (sum, p) => sum + (p.score_rate || 0),
-                                0
-                              ) / currentPractice.length
-                            )
-                          : 0}
-                        %
-                      </p>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-3 border text-center">
-                      <Clock className="w-4 h-4 mx-auto text-slate-600 mb-1" />
-                      <p className="text-xs font-semibold text-slate-700">時間</p>
-                      <p className="text-base font-bold text-slate-800">
-                        {currentPractice.length > 0
-                          ? Math.round(
-                              currentPractice.reduce(
-                                (sum, p) => sum + (p.during_time || 0),
-                                0
-                              ) / currentPractice.length / 60
-                            )
-                          : 0}
-                        分
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="mt-2 text-sm font-medium text-center text-green-600">
-                    表現優異！繼續保持！
-                  </p>
-                </Card>
-
-                {/* 測驗答題卡片 */}
-                <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900">測驗答題</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        您：{studentData.quiz} 題 ｜ 班級平均：{classData.quiz_avg} 題
-                      </p>
-                    </div>
-                    <Link to="/student-dashboard/quiz">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="p-3 rounded-lg bg-primary/10 hover:bg-primary/20 transition flex items-center justify-center"
-                      >
-                        <BarChart3 className="w-5 h-5 text-primary" />
-                      </Button>
-                    </Link>
-                  </div>
-
-                  <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-6">
-                    <div
-                      className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
-                      style={{ width: `${(classData.quiz_avg / maxValues.quiz) * 100}%` }}
-                    ></div>
-                    <div
-                      className="absolute top-0 left-0 h-3 rounded-full bg-blue-500"
-                      style={{ width: `${(studentData.quiz / maxValues.quiz) * 100}%` }}
-                    ></div>
-                  </div>
-
-                  <div className="text-center mt-3">
-                    <p className="text-base font-semibold text-blue-600">
-                      高於班級平均 {studentData.quiz - classData.quiz_avg} 題
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      🌟 答題穩定，維持良好作答節奏。
-                    </p>
-                  </div>
-                </Card>
-
-                {/* 影片瀏覽卡片 */}
-                <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900">影片瀏覽</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        您：{studentData.video} 次 ｜ 班級平均：{classData.video_avg} 次
-                      </p>
-                    </div>
-                    <Link to="/student-dashboard/video">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="p-3 rounded-lg bg-primary/10 hover:bg-primary/20 transition flex items-center justify-center"
-                      >
-                        <BarChart3 className="w-5 h-5 text-primary" />
-                      </Button>
-                    </Link>
-                  </div>
-
-                  <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-6">
-                    <div
-                      className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
-                      style={{ width: `${(classData.video_avg / maxValues.video) * 100}%` }}
-                    ></div>
-                    <div
-                      className="absolute top-0 left-0 h-3 rounded-full bg-blue-500"
-                      style={{ width: `${(studentData.video / maxValues.video) * 100}%` }}
-                    ></div>
-                  </div>
-
-                  <div className="text-center mt-3">
-                    <p className="text-base font-semibold text-blue-600">
-                      高於班級平均 {studentData.video - classData.video_avg} 次
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      🎥 學習積極，保持觀看節奏。
-                    </p>
-                  </div>
-                </Card>
-
-                {/* 數學測驗卡片 */}
-                <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900">數學測驗</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        您：{studentData.math} 題 ｜ 班級平均：{classData.math_avg} 題
-                      </p>
-                    </div>
-                    <Link to="/student-dashboard/math">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="p-3 rounded-lg bg-primary/10 hover:bg-primary/20 transition flex items-center justify-center"
-                      >
-                        <BarChart3 className="w-5 h-5 text-primary" />
-                      </Button>
-                    </Link>
-                  </div>
-
-                  <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-6">
-                    <div
-                      className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
-                      style={{ width: `${(classData.math_avg / maxValues.math) * 100}%` }}
-                    ></div>
-                    <div
-                      className="absolute top-0 left-0 h-3 rounded-full bg-blue-500"
-                      style={{ width: `${(studentData.math / maxValues.math) * 100}%` }}
-                    ></div>
-                  </div>
-
-                  <div className="text-center mt-3">
-                    <p className="text-base font-semibold text-yellow-600">
-                      低於班級平均 {classData.math_avg - studentData.math} 題
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      📊 建議多練習錯題，提升解題正確率。
-                    </p>
-                  </div>
-                </Card>
-
+            {/* 子統計 */}
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="bg-slate-50 rounded-lg p-3 border text-center">
+                <PenTool className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                <p className="text-xs font-semibold text-slate-700">次數</p>
+                <p className="text-base font-bold text-slate-800">
+                  {currentPractice.length || 0}
+                </p>
               </div>
 
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 text-center">
+                <Target className="w-4 h-4 mx-auto text-blue-600 mb-1" />
+                <p className="text-xs font-semibold text-slate-700">正確率</p>
+                <p className="text-base font-bold text-slate-800">
+                  {currentPractice.length > 0
+                    ? Math.round(
+                        currentPractice.reduce(
+                          (sum, p) => sum + (p.score_rate || 0),
+                          0
+                        ) / currentPractice.length
+                      )
+                    : 0}
+                  %
+                </p>
+              </div>
 
+              <div className="bg-slate-50 rounded-lg p-3 border text-center">
+                <Clock className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                <p className="text-xs font-semibold text-slate-700">時間</p>
+                <p className="text-base font-bold text-slate-800">
+                  {currentPractice.length > 0
+                    ? Math.round(
+                        currentPractice.reduce(
+                          (sum, p) => sum + (p.during_time || 0),
+                          0
+                        ) / currentPractice.length /
+                        60
+                      )
+                    : 0}
+                  分
+                </p>
+              </div>
+            </div>
 
-        </div>   
-      </div>
+            <p className="mt-4 text-sm font-medium text-center text-green-600">
+              表現優異！繼續保持！
+            </p>
+          </Card>
+
+          {/* 測驗答題 */}
+          <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">測驗答題</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  您：{studentData.quiz} 題 ｜ 班級平均：{classData.quiz_avg} 題
+                </p>
+              </div>
+              <Link to="/student-dashboard/quiz">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition"
+                >
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-4">
+              <div
+                className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
+                style={{ width: `${(classData.quiz_avg / maxValues.quiz) * 100}%` }}
+              ></div>
+              <div
+                className="absolute top-0 left-0 h-3 rounded-full bg-blue-500"
+                style={{ width: `${(studentData.quiz / maxValues.quiz) * 100}%` }}
+              ></div>
+            </div>
+
+            <div className="text-center mt-3">
+              <p
+                className={`text-base font-semibold ${
+                  studentData.quiz >= classData.quiz_avg
+                    ? "text-green-600"
+                    : "text-red-500"
+                }`}
+              >
+                {studentData.quiz >= classData.quiz_avg
+                  ? `高於班級平均 ${studentData.quiz - classData.quiz_avg} 題`
+                  : `低於班級平均 ${classData.quiz_avg - studentData.quiz} 題`}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                🌟 保持作答穩定度，持續練習可進一步提升！
+              </p>
+            </div>
+          </Card>
+
+          {/* 影片瀏覽 */}
+          <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">影片瀏覽</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  您：{studentData.video} 次 ｜ 班級平均：{classData.video_avg} 次
+                </p>
+              </div>
+              <Link to="/student-dashboard/video">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition"
+                >
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-4">
+              <div
+                className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
+                style={{ width: `${(classData.video_avg / maxValues.video) * 100}%` }}
+              ></div>
+              <div
+                className="absolute top-0 left-0 h-3 rounded-full bg-blue-500"
+                style={{ width: `${(studentData.video / maxValues.video) * 100}%` }}
+              ></div>
+            </div>
+
+            <div className="text-center mt-3">
+              <p
+                className={`text-base font-semibold ${
+                  studentData.video >= classData.video_avg
+                    ? "text-green-600"
+                    : "text-red-500"
+                }`}
+              >
+                {studentData.video >= classData.video_avg
+                  ? `高於班級平均 ${studentData.video - classData.video_avg} 次`
+                  : `低於班級平均 ${classData.video_avg - studentData.video} 次`}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                🎥 持續保持觀看節奏，強化理解深度！
+              </p>
+            </div>
+          </Card>
+
+          {/* 數學測驗 */}
+          <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">數學測驗</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  您：{studentData.math} 題 ｜ 班級平均：{classData.math_avg} 題
+                </p>
+              </div>
+              <Link to="/student-dashboard/math">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="p-2 rounded-lg bg-primary/10 hover:bg-primary/20 transition"
+                >
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-4">
+              <div
+                className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
+                style={{ width: `${(classData.math_avg / maxValues.math) * 100}%` }}
+              ></div>
+              <div
+                className="absolute top-0 left-0 h-3 rounded-full bg-blue-500"
+                style={{ width: `${(studentData.math / maxValues.math) * 100}%` }}
+              ></div>
+            </div>
+
+            <div className="text-center mt-3">
+              <p
+                className={`text-base font-semibold ${
+                  studentData.math >= classData.math_avg
+                    ? "text-green-600"
+                    : "text-yellow-600"
+                }`}
+              >
+                {studentData.math >= classData.math_avg
+                  ? `高於班級平均 ${studentData.math - classData.math_avg} 題`
+                  : `低於班級平均 ${classData.math_avg - studentData.math} 題`}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                📊 建議針對錯題加強練習，提升正確率。
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div> 
+    </div>   
   );
 }
