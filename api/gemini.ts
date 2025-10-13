@@ -14,21 +14,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "缺少 messages 參數" });
     }
 
-    // 將 messages 合併成 prompt（Gemini 支援多輪對話格式）
-    const contents = messages.map((m: any) => ({
-      role: m.role,
-      parts: [{ text: m.content }],
-    }));
+    const prompt = messages.map((m: any) => `${m.role}: ${m.content}`).join("\n");
 
-    console.log("➡️ 送出 Gemini API 請求...");
+    console.log("➡️ 準備送出請求到 Gemini...");
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents,
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             maxOutputTokens: 1500,
             temperature: 0.7,
@@ -52,27 +48,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log("🤖 Gemini 回應 JSON:", JSON.stringify(data, null, 2));
 
-    // 🧩 嘗試多種結構抓取模型文字
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("\n") ||
-      data?.output_text ||
-      data?.text ||
-      "（Gemini 沒有回覆文字）";
-
-    // 若完全沒內容，也回傳完整 debug 結果
-    if (!reply || reply.trim() === "") {
-      return res.status(200).json({
-        reply: "（Gemini 回覆為空）",
-        debug: data,
-      });
+    if (data.error) {
+      return res.status(500).json({ error: data.error.message });
     }
 
-    return res.status(200).json({ reply });
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text || "（Gemini 沒有回覆）";
+
+    return res.json({ reply });
   } catch (error: any) {
     console.error("❌ Proxy API error:", error);
-    return res.status(500).json({
-      error: error.message || "Server error",
-    });
+    return res.status(500).json({ error: error.message || "Server error" });
   }
 }
