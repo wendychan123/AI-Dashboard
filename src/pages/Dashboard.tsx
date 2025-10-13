@@ -52,7 +52,7 @@ ChartJS.register(
 // 五個資料表的 URL
 const CSV_PRACTICE =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSjuUAxurul4du6S5xU8G8EPICQXTahTlI3wdu3Ts79IKIpYN8dumxLnXdrwr_p0Mg-3q3zUI6K1AvD/pub?gid=710180589&single=true&output=csv";
-const CSV_TEST = "";
+const CSV_TEST = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ2T-FvT_sR4ycbOTGpOF5colwjyUMkoudJIDBXBMn7HErI5QpNjFbAjQEWUGTCbddmz0lRgEBZHYDh/pub?gid=495356082&single=true&output=csv";
 const CSV_VIDEO = "";
 const CSV_VOCAB = "";
 const CSV_MATH = "";
@@ -96,21 +96,33 @@ interface PracticeRow {
   subject_name: string;
 }
 
-interface TestRow {
+interface TestRowCSV {
   user_sn: string;
-  subject: string;
-  score: string;
+  sn: string;
+  action_time: string;
+  object_type: string;
+  result_duration: string;
+  result_success: string;
+  mission_id: string;
+  question_id: string;
+}
+
+interface TestRow {
+  user_sn: number;
+  sn: number;
+  action_time: Date | null;
+  object_type: string;
+  result_duration: string;
+  result_success: string;
+  mission_id: string;
+  question_id: string;
 }
 interface VideoRow {
   user_sn: string;
   video_name: string;
   finish_rate: string;
 }
-interface VocabRow {
-  user_sn: string;
-  word: string;
-  is_correct: string; 
-}
+
 interface MathRow {
   user_sn: string;
   unit_name: string;
@@ -122,10 +134,11 @@ export default function Dashboard() {
   const [practiceRows, setPracticeRows] = useState<PracticeRow[]>([]);
   const [testRows, setTestRows] = useState<TestRow[]>([]);
   const [videoRows, setVideoRows] = useState<VideoRow[]>([]);
-  const [vocabRows, setVocabRows] = useState<VocabRow[]>([]);
   const [mathRows, setMathRows] = useState<MathRow[]>([]);
   const radarRef = useRef<HTMLCanvasElement>(null);
   const activityRef = useRef<HTMLCanvasElement>(null);
+  const [totalMissions, setTotalMissions] = useState(0);
+  const [accRate, setAccRate] = useState(0);
   
 
   // ---------- 共用函式 ----------
@@ -357,6 +370,52 @@ useEffect(() => {
     );
   });
 
+  // 🟩 載入測驗答題 CSV
+  Papa.parse<TestRowCSV>(CSV_TEST, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (res) => {
+      const clean = (res.data as any[]).map((r) => {
+        const o: any = {};
+        Object.keys(r || {}).forEach((k) => {
+          const nk = (k || "").trim();
+          const v = r[k];
+          o[nk] = typeof v === "string" ? v.trim() : v;
+        });
+        return o as TestRowCSV;
+      });
+
+      // 正規化
+      const toNum = (v: any): number | null => {
+        const n = Number(String(v ?? "").trim());
+        return Number.isFinite(n) ? n : null;
+      };
+
+      const normalizeTest = (r: TestRowCSV): TestRow => {
+        let parsedDate: Date | null = null;
+        if (r.action_time) {
+          let cleanTime = r.action_time.replace(" ", "T").replace(/\+\d{2}:\d{2}$/, "");
+          const d = new Date(cleanTime);
+          parsedDate = isNaN(d.getTime()) ? null : d;
+        }
+        return {
+          user_sn: toNum(r.user_sn) ?? 0,
+          sn: toNum(r.sn) ?? 0,
+          action_time: parsedDate,
+          object_type: (r.object_type || "").trim(),
+          result_duration: (r.result_duration || "").trim(),
+          result_success: (r.result_success || "").trim(),
+          mission_id: (r.mission_id || "").trim(),
+          question_id: (r.question_id || "").trim(),
+        };
+      };
+
+      const normalized = clean.map(normalizeTest);
+      setTestRows(normalized);
+    },
+  });
+
 
 // 呼叫 Gemini API
   const handleAiAnalysis = async (type: "radar" | "activity") => {
@@ -435,9 +494,9 @@ useEffect(() => {
     loadPracticeCSV(CSV_PRACTICE, setPracticeRows);
     loadCSV<TestRow>(CSV_TEST, setTestRows);
     loadCSV<VideoRow>(CSV_VIDEO, setVideoRows);
-    loadCSV<VocabRow>(CSV_VOCAB, setVocabRows);
     loadCSV<MathRow>(CSV_MATH, setMathRows);
   }, []);
+
 
 
   // ---------- 過濾登入學生 ----------
@@ -445,6 +504,10 @@ useEffect(() => {
   const currentPractice = useMemo(
     () => practiceRows.filter((r) => r.user_sn === sid),
     [practiceRows, sid]
+  );
+    const currentTests = useMemo(
+    () => testRows.filter((r) => r.user_sn === sid),
+    [testRows, sid]
   );
 
   // 儀表板圖表顯示
@@ -631,7 +694,7 @@ useEffect(() => {
             {/* 子統計 */}
             <div className="grid grid-cols-3 gap-3 mt-4">
               <div className="bg-slate-50 rounded-lg p-3 border text-center">
-                <PenTool className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                
                 <p className="text-xs font-semibold text-slate-700">次數</p>
                 <p className="text-xl font-bold text-blue-600">
                   {currentPractice.length || 0}
@@ -639,7 +702,7 @@ useEffect(() => {
               </div>
 
               <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-center">
-                <Target className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                
                 <p className="text-xs font-semibold text-slate-700">正確率</p>
                 <p className="text-xl font-bold text-blue-600">
                   {currentPractice.length > 0
@@ -655,7 +718,7 @@ useEffect(() => {
               </div>
 
               <div className="bg-slate-50 rounded-lg p-3 border text-center">
-                <Clock className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                
                 <p className="text-xs font-semibold text-slate-700">時間</p>
                 <p className="text-xl font-bold text-blue-600">
                   {currentPractice.length > 0
@@ -679,6 +742,7 @@ useEffect(() => {
 
           {/* 測驗答題 */}
           <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
+            {/* 標題列 */}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg sm:text-xl font-bold text-gray-900">測驗答題</h3>
@@ -697,7 +761,8 @@ useEffect(() => {
               </Link>
             </div>
 
-            <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-4">
+            {/* 進度條 */}
+            <div className="w-full bg-gray-200 h-3 rounded-full relative overflow-hidden mb-6">
               <div
                 className="absolute top-0 left-0 h-3 rounded-full bg-green-400 opacity-40"
                 style={{ width: `${(classData.quiz_avg / maxValues.quiz) * 100}%` }}
@@ -708,23 +773,29 @@ useEffect(() => {
               ></div>
             </div>
 
-            <div className="text-center mt-3">
-              <p
-                className={`text-base font-semibold ${
-                  studentData.quiz >= classData.quiz_avg
-                    ? "text-green-600"
-                    : "text-red-500"
-                }`}
-              >
-                {studentData.quiz >= classData.quiz_avg
-                  ? `高於班級平均 ${studentData.quiz - classData.quiz_avg} 題`
-                  : `低於班級平均 ${classData.quiz_avg - studentData.quiz} 題`}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                🌟 保持作答穩定度，持續練習可進一步提升！
-              </p>
+            {/* 子統計卡片 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* 總測驗數 */}
+
+              <div className="bg-slate-50 rounded-lg p-3 border text-center">
+                <p className="text-xs font-semibold text-slate-700">總測驗數</p>
+                <p className="text-xl font-bold text-blue-600">
+                   {totalMissions} 份
+                </p>
+              </div>
+              
+               {/* 整體答對率 */}
+              <div className="bg-slate-50 rounded-lg p-3 border text-center">
+                <p className="text-xs font-semibold text-slate-700">整體答對率</p>
+                <p className="text-xl font-bold text-blue-600">
+                   {accRate}%
+                </p>
+              </div>
+              
+             
             </div>
-          </Card>
+</Card>
+
 
           {/* 影片瀏覽 */}
           <Card className="p-6 shadow-sm hover:shadow-md transition border rounded-xl">
@@ -757,6 +828,35 @@ useEffect(() => {
               ></div>
             </div>
 
+            {/* 子統計 */}
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="bg-slate-50 rounded-lg p-3 border text-center">
+                <PenTool className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                <p className="text-xs font-semibold text-slate-700">瀏覽影片數</p>
+                <p className="text-xl font-bold text-blue-600">
+                  
+                </p>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-center">
+                <Target className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                <p className="text-xs font-semibold text-slate-700">平均完成率</p>
+                <p className="text-xl font-bold text-blue-600">
+                  
+                </p>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-3 border text-center">
+                <PenTool className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                <p className="text-xs font-semibold text-slate-700">最專注科目</p>
+                <p className="text-xl font-bold text-blue-600">
+                  
+                </p>
+              </div>
+
+              
+            </div>
+
             <div className="text-center mt-3">
               <p
                 className={`text-base font-semibold ${
@@ -768,9 +868,6 @@ useEffect(() => {
                 {studentData.video >= classData.video_avg
                   ? `高於班級平均 ${studentData.video - classData.video_avg} 次`
                   : `低於班級平均 ${classData.video_avg - studentData.video} 次`}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                🎥 持續保持觀看節奏，強化理解深度！
               </p>
             </div>
           </Card>

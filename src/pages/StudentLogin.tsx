@@ -201,10 +201,10 @@ const StudentLogin = () => {
                       ｜測試帳號｜
                     </p>
                     <p className="text-[8px] sm:text-xs text-muted-foreground/60">
-                      姓名 65038、學號 338
+                      姓名 4561、學號 973
                     </p>
                     <p className="text-[8px] sm:text-xs text-muted-foreground/60">
-                      姓名 108139、學號 1808
+                      姓名 312031、學號 973
                     </p>
                   </div>
 
