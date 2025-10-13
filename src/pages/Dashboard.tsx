@@ -360,25 +360,33 @@ useEffect(() => {
 
   // 呼叫 Gemini API
   const handleAiAnalysis = async (type: "radar" | "activity") => {
-    // 根據類型切換對應 loading
+    // 根據類型切換對應狀態
     if (type === "radar") setLoadingRadar(true);
     if (type === "activity") setLoadingActivity(true);
 
     try {
+      // 根據類型組成數據內容
       const prompt =
         type === "radar"
-          ? `以下是學生與班級的學習表現：
-              練習表現：${studentData.practice} (班平均 ${classData.practice_avg})
-              測驗答題：${studentData.quiz} (班平均 ${classData.quiz_avg})
-              影片瀏覽：${studentData.video} (班平均 ${classData.video_avg})
-              英文單字：${studentData.vocab} (班平均 ${classData.vocab_avg})
-              數學測驗：${studentData.math} (班平均 ${classData.math_avg})
-              `
-          : `以下是學生最近六週的學習活躍度：
-              ${studentData.activity.join("、")}
-              班級平均為 ${classData.activity_avg.join("、")}。
-              `;
+          ? `
+  學生與班級的整體學習表現數據：
+  - 練習表現：${studentData.practice}（班級平均：${classData.practice_avg}）
+  - 測驗答題：${studentData.quiz}（班級平均：${classData.quiz_avg}）
+  - 影片瀏覽：${studentData.video}（班級平均：${classData.video_avg}）
+  - 英文單字：${studentData.vocab}（班級平均：${classData.vocab_avg}）
+  - 數學測驗：${studentData.math}（班級平均：${classData.math_avg}）
 
+  請根據上述數據，分析學生的學習狀態。
+          `
+          : `
+  學生最近六週的學習活躍度：
+  - 學生活躍度（週次由舊到新）：${studentData.activity.join("、")}
+  - 班級平均活躍度：${classData.activity_avg.join("、")}
+
+  請根據上述數據，分析學生的學習狀態。
+          `;
+
+      // 🔹 呼叫 Gemini API
       const response = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -386,8 +394,29 @@ useEffect(() => {
           messages: [
             {
               role: "system",
-              content:
-                "你是一個學生學習AI助手，請根據圖表數據給出學習的建議，請提供「數據解析、學習提醒、行動建議」三段式建議，以 Markdown 條列式輸出，至少三點。",
+              content: `
+  你是一位學生教育數據分析與學習輔導專家。請根據學生的學習數據，輸出「三段式分析建議」，並採用 **Markdown 條列式格式**。
+
+  請嚴格依照以下格式輸出：
+
+  **數據分析**
+  - 說明數據呈現的主要趨勢或異常
+  - 強調與班級平均相比的優勢或落差
+  - 指出學習表現的關鍵指標
+  - （可再補充1-2點具體觀察）
+
+  **學習提醒**
+  - 給學生的具體提醒（學習態度、專注度）
+  - 強調應避免的錯誤學習模式
+  - 鼓勵持續改進的方向
+
+  **行動建議**
+  - 提出可執行的學習行動（如練習策略、複習方法）
+  - 可建議時間管理、資源使用或同儕互動方式
+  - 語氣保持正向、具體、有指導性
+
+  請使用 3~5 點條列式建議，內容簡潔具體、可行。
+              `,
             },
             { role: "user", content: prompt },
           ],
@@ -397,7 +426,7 @@ useEffect(() => {
       const data = await response.json();
       setAiSummary(data.reply || "⚠️ 沒有收到 Gemini 回覆。");
       setActiveChart(type);
-      setOpen(true); // 
+      setOpen(true);
     } catch (error: any) {
       setAiSummary(`❌ 錯誤：${error.message}`);
     } finally {
@@ -405,6 +434,7 @@ useEffect(() => {
       if (type === "activity") setLoadingActivity(false);
     }
   };
+
 
 
 
