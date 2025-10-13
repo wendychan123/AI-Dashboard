@@ -196,17 +196,18 @@ const StudentLogin = () => {
                     {loading ? "登入中..." : "進入學習儀表板"}
                   </Button>
 
-                  <div className="mt-4 pt-2 border-t border-border/20 space-y-1 text-center">
-                    <p className="text-xs sm:text-sm text-muted-foreground/70">
+                  <div className="mt-4 pt-3 border-t border-border/20 space-y-1 text-center">
+                    <p className="text-[9px] sm:text-xs text-muted-foreground/70">
                       ｜測試帳號｜
                     </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground/60">
-                      姓名 4561、學號 973
+                    <p className="text-[8px] sm:text-xs text-muted-foreground/60">
+                      姓名 65038、學號 338
                     </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground/60">
-                      姓名 13328、學號 1808
+                    <p className="text-[8px] sm:text-xs text-muted-foreground/60">
+                      姓名 108139、學號 1808
                     </p>
                   </div>
+
                 </form>
               </CardContent>
             </Card>

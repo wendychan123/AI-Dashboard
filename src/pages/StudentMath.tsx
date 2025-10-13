@@ -16,7 +16,7 @@ import {
   Legend,
 } from "chart.js";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpenCheck, ArrowLeft, PenTool, BarChart3, TrendingUp, Target, Brain, Lightbulb, Zap, Clock, Award, Pencil } from "lucide-react";
+import { BookOpenCheck, ArrowLeft, PenTool, BarChart3, TrendingUp, Target, Brain, Lightbulb, Zap, Clock, Award, Youtube, Calculator } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 
@@ -232,11 +232,11 @@ const normalizeTest = (r: TestRowCSV): TestRow => {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <Pencil className="w-8 h-8 text-primary" />
+                  <Calculator className="w-8 h-8 text-primary" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold text-foreground">
-                    測驗答題分析
+                    數學測驗分析
                   </h1>
                 </div>
               </div>
@@ -247,7 +247,7 @@ const normalizeTest = (r: TestRowCSV): TestRow => {
         {/* 統計卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* 1. 總測驗數 */}
-          <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
+          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
             <CardHeader className="pb-5">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">總測驗數</CardTitle>
@@ -258,7 +258,7 @@ const normalizeTest = (r: TestRowCSV): TestRow => {
           </Card>
 
           {/* 2. 整體答對率 */}
-          <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
+          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
             <CardHeader className="pb-5">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">整體正確率</CardTitle>
@@ -277,7 +277,7 @@ const normalizeTest = (r: TestRowCSV): TestRow => {
         </div>
         {/* 🔹 第一行四張統計卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-1 gap-6 mb-18">
-          <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
+          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
          
           <CardHeader>
             <CardTitle>答對率 100% 試卷</CardTitle>
@@ -296,7 +296,7 @@ const normalizeTest = (r: TestRowCSV): TestRow => {
         
          
           {/* 2. 測驗總耗時 */}
-          <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
+          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
             <CardHeader><CardTitle>測驗總耗時</CardTitle></CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -333,7 +333,7 @@ const normalizeTest = (r: TestRowCSV): TestRow => {
 
           
           {/* 4. 平均作答時間 */}
-          <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
+          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
             <CardHeader><CardTitle>平均作答時間</CardTitle></CardHeader>
             
             <CardContent>
@@ -371,7 +371,7 @@ const normalizeTest = (r: TestRowCSV): TestRow => {
 
           {/* 5. 詳細作答紀錄 */}
         
-        <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card mt-12">
+        <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card mt-12">
           <CardHeader className="flex justify-start items-start">
             <CardTitle>詳細作答紀錄</CardTitle>
           </CardHeader>

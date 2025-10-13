@@ -41,6 +41,8 @@ import Statistics from "./pages/Statistics";
 import StudentPractice from "./pages/StudentPractice";
 import NotFound from "./pages/NotFound";
 import StudentQuiz from "./pages/StudentQuiz";
+import StudentVideo from "./pages/StudentVideo";
+import StudentMath from "./pages/StudentMath";
 const queryClient = new QueryClient();
 
 const menuItems = [
@@ -218,9 +220,10 @@ const StudentDashboardLayout = () => {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/quiz" element={<StudentQuiz />} />
+          <Route path="/video" element={<StudentVideo />} />
           <Route path="/ai-suggestions" element={<AISuggestions />} />
           <Route path="/practice" element={<StudentPractice />} />
-          <Route path="/statistics" element={<Statistics />} />
+          <Route path="/math" element={<StudentMath />} />
         </Routes>
       </main>
     </div>

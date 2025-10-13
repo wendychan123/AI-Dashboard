@@ -304,98 +304,21 @@ const [aiAction, setAiAction] = useState("");
     setAiReminder("");
     setAiAction("");
 
-    try {
-      // 🔹 整合完整的練習數據
-      const studentReport = {
-        totalPractice: currentPractice.length,
-        avgAcc: currentPractice.length > 0
-          ? Math.round(
-              (currentPractice.reduce((sum, p) => sum + (p.score_rate || 0), 0) /
-                currentPractice.length) * 100
-            )
-          : 0,
-        avgTime: currentPractice.length > 0
-          ? Math.round(
-              currentPractice.reduce((sum, p) => sum + (p.during_time || 0), 0) /
-                currentPractice.length
-            )
-          : 0,
-        indicatorAccuracy: indicatorAgg.labels.map((label, i) => ({
-          indicator: label,
-          acc: Math.round(indicatorAgg.values[i])
-        })),
-        subjectDist: subjectDist.labels.map((sub, i) => ({
-          subject: sub,
-          count: subjectDist.datasets[0].data[i]
-        })),
-        scoreTrend: currentSessions.map((r) => ({
-          date: r.date?.toLocaleDateString() || "",
-          acc: Math.round((r.acc || 0) * 100),
-        })),
-      };
-
-      // 🔹 提示詞：包含完整 JSON 報表
-      const prompt = `
-      你是一位教學助理，請根據以下學生的練習表現數據，輸出 JSON 格式的回覆：
-      ${JSON.stringify(studentReport, null, 2)}
-
-      請回覆純 JSON（不要多餘文字），格式如下：
-      {
-        "數據分析": "簡短說明數據狀況",
-        "學習提醒": "給學生的一句提醒",
-        "行動建議": "學生下一步該做什麼"
-      }
-      `;
-
-      // 🔹 呼叫 OpenAI API
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-        }),
-      });
-
-      const data = await res.json();
-      let content = data.choices?.[0]?.message?.content || "{}";
-
-      // 🔹 嘗試擷取 JSON 區塊
-      const match = content.match(/\{[\s\S]*\}/);
-      if (match) content = match[0];
-
-      const parsed = JSON.parse(content);
-      setAiData(parsed["數據分析"] || "⚠️ 無法取得數據分析");
-      setAiReminder(parsed["學習提醒"] || "⚠️ 無法取得學習提醒");
-      setAiAction(parsed["行動建議"] || "⚠️ 無法取得行動建議");
-    } catch (err) {
-      console.error("AI request error:", err);
-      setAiData("⚠️ 取得 AI 分析失敗");
-      setAiReminder("⚠️ 取得 AI 分析失敗");
-      setAiAction("⚠️ 取得 AI 分析失敗");
-    } finally {
-      setIsLoading(false);
-    }
   };
 
 
 
-
+  // -----------------------------
+  // 儀表板設計
 
   return (
-    <div className="bg-gradient-background min-h-full">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-10xl mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Header */}
-        <div className="bg-background border-b border-border/20 mb-4 -mx-4 -mt-8 px-4 py-6 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-8xl mx-auto">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <PenTool className="w-8 h-8 text-primary" />
+                  <BarChart3 className="w-8 h-8 text-primary" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold text-foreground">
@@ -405,15 +328,18 @@ const [aiAction, setAiAction] = useState("");
               </div>
             </div>
           </div>
-        </div>
 
         {/* 統計卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
+          <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">總練習次數</CardTitle>
-                <div className="text-4xl font-bold text-foreground mb-0">{currentPractice.length} 次</div>
+                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  總練習次數
+                </CardTitle>
+                <div className="text-3xl font-bold text-foreground mb-0">
+                  {currentPractice.length} 次
+                </div>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
@@ -426,11 +352,12 @@ const [aiAction, setAiAction] = useState("");
             </CardContent>
           </Card>
 
-          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
+
+          <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">平均正確率</CardTitle>
-                <div className="text-4xl font-bold text-foreground mb-0">
+                <div className="text-3xl font-bold text-foreground mb-0">
                 {currentPractice.length > 0 
                   ? Math.round((currentPractice.reduce((sum, p) => sum + (p.score_rate || 0), 0) / currentPractice.length))
                   : 0}%
@@ -447,11 +374,11 @@ const [aiAction, setAiAction] = useState("");
             </CardContent>
           </Card>
 
-          <Card className="group bg-card/80 backdrop-blur-sm border-0 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
+          <Card className="group bg-card/80 backdrop-blur-sm border border-border/100 shadow-card hover:shadow-elevated transition-smooth hover:-translate-y-1">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">平均作答時間</CardTitle>
-                <div className="text-4xl font-bold text-foreground mb-0">
+                <div className="text-3xl font-bold text-foreground mb-0">
                 {currentPractice.length > 0 
                   ? Math.round((currentPractice.reduce((sum, p) => sum + (p.during_time || 0), 0) / currentPractice.length))
                   : 0} 秒
@@ -476,7 +403,7 @@ const [aiAction, setAiAction] = useState("");
           {/* 第一行：兩個次要圖表 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* 指標平均正確率 */}
-            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated hover:shadow-glow transition-smooth relative">
+            <Card className="bg-card/80 backdrop-blur-sm border border-border/100 shadow-elevated hover:shadow-glow transition-smooth relative">
               <CardHeader className="pb-6">
                 <div className="flex items-center justify-between">
                   {/* 左側：標題 */}
@@ -547,7 +474,7 @@ const [aiAction, setAiAction] = useState("");
             </Card>
 
             {/* 科目分布 */}            
-            <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated hover:shadow-glow transition-smooth relative">
+            <Card className="bg-card/80 backdrop-blur-sm border border-border/100 shadow-elevated hover:shadow-glow transition-smooth relative">
               <CardHeader className="pb-6">
                 <div className="flex items-center justify-between">
                   {/* 左側：標題 */}
@@ -615,7 +542,7 @@ const [aiAction, setAiAction] = useState("");
           </div>
 
           {/* 第三行：作答時間分布 */}
-          <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated hover:shadow-glow transition-smooth relative">
+          <Card className="bg-card/80 backdrop-blur-sm border border-border/100 shadow-elevated hover:shadow-glow transition-smooth relative">
               <CardHeader className="pb-6">
                 <div className="flex items-center justify-between">
                   {/* 左側：標題 */}
@@ -692,7 +619,7 @@ const [aiAction, setAiAction] = useState("");
         </div>
 
         {/* 正確率趨勢 */}
-        <Card className="bg-card/80 backdrop-blur-sm border-0 shadow-elevated">
+        <Card className="bg-card/80 backdrop-blur-sm border border-border/100 shadow-elevated">
           <CardHeader>
             <CardTitle>正確率趨勢</CardTitle>
             <p className="text-sm text-muted-foreground">每次練習的正確率變化</p>
@@ -722,7 +649,7 @@ const [aiAction, setAiAction] = useState("");
         
 
       </div>
-    </div>
+    
   );
 }
 
