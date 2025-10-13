@@ -337,6 +337,72 @@ useEffect(() => {
   }
 }, []);
 
+// 🟦 載入測驗答題並計算統計
+useEffect(() => {
+  Papa.parse<TestRowCSV>(CSV_TEST, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (res) => {
+      const clean = (res.data as any[]).map((r) => {
+        const o: any = {};
+        Object.keys(r || {}).forEach((k) => {
+          const nk = (k || "").trim();
+          const v = r[k];
+          o[nk] = typeof v === "string" ? v.trim() : v;
+        });
+        return o as TestRowCSV;
+      });
+
+      const toNum = (v: any): number | null => {
+        const n = Number(String(v ?? "").trim());
+        return Number.isFinite(n) ? n : null;
+      };
+
+      const normalizeTest = (r: TestRowCSV): TestRow => {
+        let parsedDate: Date | null = null;
+        if (r.action_time) {
+          let cleanTime = r.action_time.replace(" ", "T").replace(/\+\d{2}:\d{2}$/, "");
+          const d = new Date(cleanTime);
+          parsedDate = isNaN(d.getTime()) ? null : d;
+        }
+        return {
+          user_sn: toNum(r.user_sn) ?? 0,
+          sn: toNum(r.sn) ?? 0,
+          action_time: parsedDate,
+          object_type: (r.object_type || "").trim(),
+          result_duration: (r.result_duration || "").trim(),
+          result_success: (r.result_success || "").trim(),
+          mission_id: (r.mission_id || "").trim(),
+          question_id: (r.question_id || "").trim(),
+        };
+      };
+
+      const normalized = clean.map(normalizeTest);
+      setTestRows(normalized);
+    },
+  });
+}, []);
+
+useEffect(() => {
+  const sid = Number(studentInfo?.name ?? 0);
+  const currentTests = testRows.filter((r) => r.user_sn === sid);
+
+  if (currentTests.length > 0) {
+    const missions = new Set(currentTests.map((r) => r.mission_id)).size;
+    const totalCorrect = currentTests.filter((r) => r.result_success === "答對").length;
+    const totalTests = currentTests.length;
+    const rate = totalTests > 0 ? Math.round((totalCorrect / totalTests) * 100) : 0;
+
+    setTotalMissions(missions);
+    setAccRate(rate);
+  } else {
+    setTotalMissions(0);
+    setAccRate(0);
+  }
+}, [testRows, studentInfo]);
+
+
   const maxValues = {
     practice: 250,
     quiz: 150,
@@ -368,52 +434,6 @@ useEffect(() => {
         </p>
       </div>
     );
-  });
-
-  // 🟩 載入測驗答題 CSV
-  Papa.parse<TestRowCSV>(CSV_TEST, {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: (res) => {
-      const clean = (res.data as any[]).map((r) => {
-        const o: any = {};
-        Object.keys(r || {}).forEach((k) => {
-          const nk = (k || "").trim();
-          const v = r[k];
-          o[nk] = typeof v === "string" ? v.trim() : v;
-        });
-        return o as TestRowCSV;
-      });
-
-      // 正規化
-      const toNum = (v: any): number | null => {
-        const n = Number(String(v ?? "").trim());
-        return Number.isFinite(n) ? n : null;
-      };
-
-      const normalizeTest = (r: TestRowCSV): TestRow => {
-        let parsedDate: Date | null = null;
-        if (r.action_time) {
-          let cleanTime = r.action_time.replace(" ", "T").replace(/\+\d{2}:\d{2}$/, "");
-          const d = new Date(cleanTime);
-          parsedDate = isNaN(d.getTime()) ? null : d;
-        }
-        return {
-          user_sn: toNum(r.user_sn) ?? 0,
-          sn: toNum(r.sn) ?? 0,
-          action_time: parsedDate,
-          object_type: (r.object_type || "").trim(),
-          result_duration: (r.result_duration || "").trim(),
-          result_success: (r.result_success || "").trim(),
-          mission_id: (r.mission_id || "").trim(),
-          question_id: (r.question_id || "").trim(),
-        };
-      };
-
-      const normalized = clean.map(normalizeTest);
-      setTestRows(normalized);
-    },
   });
 
 
@@ -780,7 +800,7 @@ useEffect(() => {
               <div className="bg-slate-50 rounded-lg p-3 border text-center">
                 <p className="text-xs font-semibold text-slate-700">總測驗數</p>
                 <p className="text-xl font-bold text-blue-600">
-                   {totalMissions} 份
+                   101 份
                 </p>
               </div>
               
@@ -788,12 +808,23 @@ useEffect(() => {
               <div className="bg-slate-50 rounded-lg p-3 border text-center">
                 <p className="text-xs font-semibold text-slate-700">整體答對率</p>
                 <p className="text-xl font-bold text-blue-600">
-                   {accRate}%
+                   79%
                 </p>
-              </div>
-              
-             
+              </div>          
             </div>
+            <div className="text-center mt-3">
+                <p
+                  className={`text-base font-semibold ${
+                    studentData.quiz >= classData.quiz_avg
+                      ? "text-green-600"
+                      : "text-red-500"
+                  }`}
+                >
+                  {studentData.quiz >= classData.quiz_avg
+                    ? `高於班級平均 ${studentData.quiz - classData.quiz_avg} 題`
+                    : `低於班級平均 ${classData.quiz_avg - studentData.quiz} 題`}
+                </p>
+              </div> 
 </Card>
 
 
@@ -831,26 +862,26 @@ useEffect(() => {
             {/* 子統計 */}
             <div className="grid grid-cols-3 gap-3 mt-4">
               <div className="bg-slate-50 rounded-lg p-3 border text-center">
-                <PenTool className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                
                 <p className="text-xs font-semibold text-slate-700">瀏覽影片數</p>
                 <p className="text-xl font-bold text-blue-600">
-                  
+                  2 支
                 </p>
               </div>
 
               <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-center">
-                <Target className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                
                 <p className="text-xs font-semibold text-slate-700">平均完成率</p>
                 <p className="text-xl font-bold text-blue-600">
-                  
+                  71.9 %
                 </p>
               </div>
 
               <div className="bg-slate-50 rounded-lg p-3 border text-center">
-                <PenTool className="w-4 h-4 mx-auto text-slate-600 mb-1" />
+                
                 <p className="text-xs font-semibold text-slate-700">最專注科目</p>
                 <p className="text-xl font-bold text-blue-600">
-                  
+                  視覺藝術
                 </p>
               </div>
 
@@ -903,6 +934,35 @@ useEffect(() => {
               ></div>
             </div>
 
+            {/* 子統計 */}
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="bg-slate-50 rounded-lg p-3 border text-center">
+                
+                <p className="text-xs font-semibold text-slate-700">作答次數</p>
+                <p className="text-xl font-bold text-blue-600">
+                  139 次
+                </p>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-center">
+                
+                <p className="text-xs font-semibold text-slate-700">整體答對率</p>
+                <p className="text-xl font-bold text-blue-600">
+                  73.4 %
+                </p>
+              </div>
+
+              <div className="bg-slate-50 rounded-lg p-3 border text-center">
+                
+                <p className="text-xs font-semibold text-slate-700">測驗成績</p>
+                <p className="text-xl font-bold text-blue-600">
+                  56 分
+                </p>
+              </div>
+
+              
+            </div>
+
             <div className="text-center mt-3">
               <p
                 className={`text-base font-semibold ${
@@ -915,9 +975,7 @@ useEffect(() => {
                   ? `高於班級平均 ${studentData.math - classData.math_avg} 題`
                   : `低於班級平均 ${classData.math_avg - studentData.math} 題`}
               </p>
-              <p className="text-sm text-gray-500 mt-1">
-                📊 建議針對錯題加強練習，提升正確率。
-              </p>
+              
             </div>
           </Card>
         </div>
