@@ -73,7 +73,7 @@ const StudentDashboardLayout = () => {
         <div className="px-3 py-3">
           <div className="flex items-center justify-between">
             {/* Left: Mobile Menu + Logo & Navigation */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0">
               {/* Mobile Menu Button */}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -85,7 +85,7 @@ const StudentDashboardLayout = () => {
                   <SheetHeader className="mb-4">
                   </SheetHeader>
                   
-                  <nav className="flex flex-col gap-1">
+                  <nav className="flex flex-col gap-2">
                     {menuItems.map((item) => (
                       <NavLink
                         key={item.url}
@@ -136,7 +136,7 @@ const StudentDashboardLayout = () => {
               </Sheet>
 
               {/* Logo */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0">
                 <div className="w-8 h-8 bg-gradient-to-br  rounded-lg flex items-center justify-center">
                   <Grip className="w-4 h-4 text-gray" />
                 </div>
@@ -144,14 +144,14 @@ const StudentDashboardLayout = () => {
               </div>
 
               {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center gap-0 ml-0">
+              <nav className="hidden md:flex items-center gap-1 ml-4">
                 {menuItems.map((item) => (
                   <NavLink
                     key={item.url}
                     to={item.url}
                     end={item.url === "/student-dashboard"}
                     className={({ isActive }) =>
-                      `px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1 ${
+                      `px-3 lg:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1 ${
                         isActive
                           ? "text-indigo-600 bg-indigo-50"
                           : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
@@ -159,7 +159,7 @@ const StudentDashboardLayout = () => {
                     }
                   >
                     <item.icon className="w-4 h-4" />
-                    {item.title}
+                    <span className="hidden lg:inline">{item.title}</span>
                   </NavLink>
                 ))}
               </nav>
