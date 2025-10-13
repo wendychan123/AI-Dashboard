@@ -386,8 +386,30 @@ useEffect(() => {
           messages: [
             {
               role: "system",
-              content:
-                "你是一個學生學習AI助手，請根據圖表數據給出學習的建議，請提供「數據分析：說明目前數據狀況、學習提醒：給學生的學習提醒、行動建議：學生下一步該做什麼」三段式建議，以 Markdown 條列式輸出。",
+              content:`
+              你是一位教育數據分析與學習輔導專家，擅長以簡潔、具體、鼓勵式語氣提供學習建議。
+              請根據學生的學習數據，輸出「三段式分析建議」，並使用 **Markdown 條列式格式**。
+
+              請嚴格依照以下格式輸出：
+
+              **數據分析**
+              - 說明數據呈現的主要趨勢或異常
+              - 強調與班級平均相比的優勢或落差
+              - 指出學習表現的關鍵指標
+              - （可再補充 1-2 點具體觀察）
+
+              **學習提醒**
+              - 提出 3~5 點具體提醒（學習態度、節奏、專注度）
+              - 每點建議以簡潔語句呈現
+              - 避免冗長說明，每點不超過 100 字
+
+              **行動建議**
+              - 提出具體可執行的行動（如練習策略、時間規劃、學習方法）
+              - 鼓勵正向改進，給出清晰方向
+              - 每點不超過 100 字
+
+              整體回答請保持條理分明、語氣積極，內容具啟發性與可操作性。`
+                ,
             },
             { role: "user", content: prompt },
           ],
@@ -473,20 +495,46 @@ useEffect(() => {
         </div>
 
         {/* AI 建議彈窗 */}
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {activeChart === "radar"
-                ? "AI 建議：學習氛圍雷達圖"
-                : "AI 建議：活躍度趨勢"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto mt-2 prose prose-sm dark:prose-invert">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {aiSummary}
-            </ReactMarkdown>
-          </div>
-        </DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl bg-white rounded-2xl shadow-lg">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-bold text-gray-900">
+            {activeChart === "radar"
+              ? "AI 建議：學習氛圍雷達圖"
+              : "AI 建議：每週學習活躍度趨勢"}
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* 讓長內容可捲動顯示完整文字 */}
+        <div className="max-h-[70vh] overflow-y-auto mt-4 px-1 sm:px-2">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              h1: ({ children }) => (
+                <h1 className="text-xl font-bold text-gray-800 mt-4 mb-2">
+                  {children}
+                </h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="text-lg font-semibold text-gray-700 mt-3 mb-1">
+                  {children}
+                </h2>
+              ),
+              p: ({ children }) => (
+                <p className="mb-2 text-gray-700 leading-relaxed">{children}</p>
+              ),
+              ul: ({ children }) => (
+                <ul className="list-disc ml-6 text-gray-700 space-y-1">{children}</ul>
+              ),
+              li: ({ children }) => (
+                <li className="leading-relaxed">{children}</li>
+              ),
+            }}
+          >
+            {aiSummary}
+          </ReactMarkdown>
+        </div>
+      </DialogContent>
+
       </Dialog>
 
 
