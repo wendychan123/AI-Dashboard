@@ -374,9 +374,9 @@ useEffect(() => {
               英文單字：${studentData.vocab} (班平均 ${classData.vocab_avg})
               數學測驗：${studentData.math} (班平均 ${classData.math_avg})
               `
-          : `以下是學生最近六週的學習活躍度：
-              ${studentData.activity.join("、")}
-              班級平均為 ${classData.activity_avg.join("、")}。
+          : `學生最近六週的學習活躍度： 
+              學生活躍度（週次由舊到新）：${studentData.activity.join("、")} 
+              班級平均活躍度：${classData.activity_avg.join("、")}。
               `;
 
       const response = await fetch("/api/gemini", {
@@ -406,7 +406,6 @@ useEffect(() => {
               - 每點不超過 30 字
 
               請使用 Markdown 條列式輸出。
-
               `
                 ,
             },
