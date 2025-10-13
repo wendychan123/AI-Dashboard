@@ -430,7 +430,7 @@ useEffect(() => {
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* 🔹 第一列：雷達圖與活躍度圖（手機垂直、平板橫向） */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-2 gap-6">
           {/* 雷達圖 */}
           <Card className="shadow-sm hover:shadow-md transition">
             <CardHeader className="flex flex-row items-center justify-between">
@@ -496,7 +496,7 @@ useEffect(() => {
             學習指標表現等級
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        <CardContent className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {Object.entries(maxValues).map(([key, max]) => {
             const value = (studentData as any)[key];
             const percent = Math.min(value / max, 1);

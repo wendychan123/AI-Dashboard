@@ -5,9 +5,32 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { StudentProvider, useStudent } from "@/contexts/StudentContext";
-import { Home, Bot, BarChart3, FileText, LogOut, Settings, Bell, Menu as MenuIcon, Grip, Power, Pencil, Youtube, Calculator } from "lucide-react";
+import {
+  Home,
+  Bot,
+  BarChart3,
+  FileText,
+  LogOut,
+  Settings,
+  Bell,
+  Menu as MenuIcon,
+  Grip,
+  Power,
+  Pencil,
+  Youtube,
+  Calculator,
+  X,
+} from "lucide-react";
 import studentAvatar from "@/assets/student-avatar.jpg";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { useState } from "react";
 
 import HomePage from "./pages/HomePage";
 import StudentLogin from "./pages/StudentLogin";
@@ -27,20 +50,21 @@ const menuItems = [
   { title: "影片瀏覽", url: "/student-dashboard/video", icon: Youtube },
   { title: "數學測驗", url: "/student-dashboard/math", icon: Calculator },
   { title: "學習建議", url: "/student-dashboard/ai-suggestions", icon: Bot },
-  
 ];
-
-
 
 const StudentDashboardLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { studentInfo } = useStudent();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     navigate("/");
   };
-  
+
+  const handleNavClick = () => {
+    setMobileMenuOpen(false);
+  };
 
   return (
     <div className="min-h-screen w-full bg-gray-50">
@@ -48,16 +72,79 @@ const StudentDashboardLayout = () => {
       <header className="bg-white/95 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="px-3 py-3">
           <div className="flex items-center justify-between">
-            {/* Left: Logo & Navigation */}
+            {/* Left: Mobile Menu + Logo & Navigation */}
             <div className="flex items-center gap-2">
+              {/* Mobile Menu Button */}
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <MenuIcon className="w-5 h-5 text-gray-700" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[280px] sm:w-[320px] bg-white">
+                  <SheetHeader className="mb-4">
+                  </SheetHeader>
+                  
+                  <nav className="flex flex-col gap-1">
+                    {menuItems.map((item) => (
+                      <NavLink
+                        key={item.url}
+                        to={item.url}
+                        end={item.url === "/student-dashboard"}
+                        onClick={handleNavClick}
+                        className={({ isActive }) =>
+                          `px-4 py-3 rounded-lg text-base font-medium transition-all duration-200 flex items-center gap-3 ${
+                            isActive
+                              ? "text-indigo-600 bg-indigo-50"
+                              : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                          }`
+                        }
+                      >
+                        <item.icon className="w-5 h-5" />
+                        {item.title}
+                      </NavLink>
+                    ))}
+                  </nav>
+
+                  <div className="mt-8 pt-8 border-t border-gray-200">
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-50">
+                      <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                        <AvatarImage src={studentAvatar} alt="學生頭像" />
+                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-sm font-bold">
+                          {studentInfo?.name?.charAt(0) || "學"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">{studentInfo?.name || "姓名"}</div>
+                        <div className="text-xs text-gray-500">{studentInfo?.id || "ID: 0000"}</div>
+                      </div>
+                    </div>
+                    
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        handleNavClick();
+                        navigate("/student-login");
+                      }}
+                      className="w-full mt-4 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>登出</span>
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              {/* Logo */}
               <div className="flex items-center gap-1">
                 <div className="w-8 h-8 bg-gradient-to-br  rounded-lg flex items-center justify-center">
                   <Grip className="w-4 h-4 text-gray" />
                 </div>
                 <h1 className="text-xl font-bold text-gray-900"></h1>
               </div>
-              
-              <nav className="hidden md:flex items-center gap-1">
+
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex items-center gap-0 ml-0">
                 {menuItems.map((item) => (
                   <NavLink
                     key={item.url}
@@ -78,14 +165,15 @@ const StudentDashboardLayout = () => {
               </nav>
             </div>
 
-            {/* Right: User Info & Actions */}
-            <div className="flex items-center gap-4">
+            {/* Right: User Info & Actions - Desktop Only */}
+            <div className="hidden md:flex items-center gap-4">
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Bell className="w-5 h-5 text-gray-600" />
               </Button>
               <Button onClick={handleLogout} variant="ghost" size="icon" className="rounded-full">
                 <Power className="w-5 h-5 flex-shrink-0" />
               </Button>
+
               <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
                 <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                   <AvatarImage src={studentAvatar} alt="學生頭像" />
@@ -98,15 +186,28 @@ const StudentDashboardLayout = () => {
                   <div className="text-xs text-gray-500">{studentInfo?.id || "ID: 0000"}</div>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
-                onClick={() => navigate('/student-login')}
+                onClick={() => navigate("/student-login")}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">登出</span>
+                <span className="hidden lg:inline">登出</span>
               </Button>
+            </div>
+
+            {/* Right: Mobile Actions */}
+            <div className="flex md:hidden items-center gap-2">
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Bell className="w-5 h-5 text-gray-600" />
+              </Button>
+              <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+                <AvatarImage src={studentAvatar} alt="學生頭像" />
+                <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-500 text-white text-xs font-bold">
+                  {studentInfo?.name?.charAt(0) || "學"}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </div>
         </div>
@@ -126,7 +227,8 @@ const StudentDashboardLayout = () => {
   );
 };
 
-const App = () => <QueryClientProvider client={queryClient}>
+const App = () => (
+  <QueryClientProvider client={queryClient}>
     <StudentProvider>
       <TooltipProvider>
         <Toaster />
@@ -135,17 +237,19 @@ const App = () => <QueryClientProvider client={queryClient}>
           <Routes>
             {/* Homepage without sidebar */}
             <Route path="/" element={<HomePage />} />
-            
+
             {/* Student login page */}
             <Route path="/student-login" element={<StudentLogin />} />
-            
+
             {/* Student dashboard */}
             <Route path="/student-dashboard/*" element={<StudentDashboardLayout />} />
-            
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </StudentProvider>
-  </QueryClientProvider>;
+  </QueryClientProvider>
+);
+
 export default App;
