@@ -365,20 +365,37 @@ useEffect(() => {
     if (type === "activity") setLoadingActivity(true);
 
     try {
-      const prompt =
+      // 根據圖表類型組成學生報告資料
+      const studentReport =
         type === "radar"
-          ? `以下是學生與班級的學習表現：
-              練習表現：${studentData.practice} (班平均 ${classData.practice_avg})
-              測驗答題：${studentData.quiz} (班平均 ${classData.quiz_avg})
-              影片瀏覽：${studentData.video} (班平均 ${classData.video_avg})
-              英文單字：${studentData.vocab} (班平均 ${classData.vocab_avg})
-              數學測驗：${studentData.math} (班平均 ${classData.math_avg})
-              請提供「數據解析、學習提醒、行動建議」三段式建議。`
-          : `以下是學生最近六週的學習活躍度：
-              ${studentData.activity.join("、")}
-              班級平均為 ${classData.activity_avg.join("、")}。
-              請提供「數據解析、學習提醒、行動建議」三段式建議。`;
+          ? {
+              練習表現: { 個人: studentData.practice, 班級平均: classData.practice_avg },
+              測驗答題: { 個人: studentData.quiz, 班級平均: classData.quiz_avg },
+              影片瀏覽: { 個人: studentData.video, 班級平均: classData.video_avg },
+              英文單字: { 個人: studentData.vocab, 班級平均: classData.vocab_avg },
+              數學測驗: { 個人: studentData.math, 班級平均: classData.math_avg },
+            }
+          : {
+              學習活躍度: {
+                最近六週: studentData.activity,
+                班級平均: classData.activity_avg,
+              },
+            };
 
+      // AI Prompt 改為「JSON 格式指令」
+      const prompt = `
+        你是一位學生學習助手，請根據以下學生的表現數據，輸出 JSON 格式的回覆：
+        ${JSON.stringify(studentReport, null, 2)}
+
+        請回覆純 JSON（不要多餘文字），格式如下：
+        {
+          "數據分析": "簡短說明數據狀況",
+          "學習提醒": "給學生的一句提醒",
+          "行動建議": "學生下一步該做什麼"
+        }
+        `;
+
+      // 呼叫 Gemini API
       const response = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -387,17 +404,27 @@ useEffect(() => {
             {
               role: "system",
               content:
-                "你是一個學習助理，請根據圖表數據給出簡潔的建議，以 Markdown 條列式輸出。",
+                "你是一位教育輔助 AI，請嚴格依照使用者提供的 JSON 格式輸出，不要加入多餘文字、解釋或 Markdown 標記。",
             },
             { role: "user", content: prompt },
           ],
         }),
       });
 
+      // 解析回傳
       const data = await response.json();
-      setAiSummary(data.reply || "⚠️ 沒有收到 Gemini 回覆。");
+
+      // 嘗試解析 JSON，若格式錯誤則顯示原文
+      let parsedReply = data.reply;
+      try {
+        parsedReply = JSON.parse(data.reply);
+      } catch {
+        console.warn("AI 回覆非純 JSON，顯示原文");
+      }
+
+      setAiSummary(parsedReply || "⚠️ 沒有收到 Gemini 回覆。");
       setActiveChart(type);
-      setOpen(true); // 
+      setOpen(true);
     } catch (error: any) {
       setAiSummary(`❌ 錯誤：${error.message}`);
     } finally {
@@ -405,6 +432,7 @@ useEffect(() => {
       if (type === "activity") setLoadingActivity(false);
     }
   };
+
 
 
 
@@ -585,15 +613,15 @@ useEffect(() => {
               <div className="bg-slate-50 rounded-lg p-3 border text-center">
                 <PenTool className="w-4 h-4 mx-auto text-slate-600 mb-1" />
                 <p className="text-xs font-semibold text-slate-700">次數</p>
-                <p className="text-base font-bold text-slate-800">
+                <p className="text-xl font-bold text-blue-600">
                   {currentPractice.length || 0}
                 </p>
               </div>
 
-              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200 text-center">
-                <Target className="w-4 h-4 mx-auto text-blue-600 mb-1" />
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-center">
+                <Target className="w-4 h-4 mx-auto text-slate-600 mb-1" />
                 <p className="text-xs font-semibold text-slate-700">正確率</p>
-                <p className="text-base font-bold text-slate-800">
+                <p className="text-xl font-bold text-blue-600">
                   {currentPractice.length > 0
                     ? Math.round(
                         currentPractice.reduce(
@@ -609,7 +637,7 @@ useEffect(() => {
               <div className="bg-slate-50 rounded-lg p-3 border text-center">
                 <Clock className="w-4 h-4 mx-auto text-slate-600 mb-1" />
                 <p className="text-xs font-semibold text-slate-700">時間</p>
-                <p className="text-base font-bold text-slate-800">
+                <p className="text-xl font-bold text-blue-600">
                   {currentPractice.length > 0
                     ? Math.round(
                         currentPractice.reduce(
